@@ -3,24 +3,30 @@
   "name": "Toastr",
   "version": "1.0",
 
-  "description": "Adds a red border to all webpages matching mozilla.org.",
+  "description": "Comment on any given website",
 
   "icons": {
     "48": "icons/border-48.png"
   },
-
+  "background": {
+    "page": "background.html",
+    "persistent": false
+  },
+  "content_security_policy": "worker-src 'self'; script-src 'self' 'wasm-unsafe-eval'",
   "content_scripts": [
     {
       "matches": ["*://*.mozilla.org/*"],
-      "js": ["sql-wasm.js", "toastr.js"]
+      "js": ["toastr.js"]
     }
   ],
-
-  "web_accessible_resources": [
-    "sql-wasm.wasm"
-  ],
-
   "host_permissions": [
     "*://toastr.tylerfreedman.com/*"
+  ],
+  "permissions": [
+    "webRequest",
+    "unlimitedStorage"
+  ],
+  "web_accessible_resources": [
+    "sql-wasm.wasm"
   ]
 }
