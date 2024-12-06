@@ -18,5 +18,9 @@
 
   "web_accessible_resources": [
     "sql-wasm.wasm"
+  ],
+
+  "host_permissions": [
+    "*://toastr.tylerfreedman.com/*"
   ]
 }
