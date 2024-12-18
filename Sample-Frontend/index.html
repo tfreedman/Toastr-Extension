@@ -89,13 +89,16 @@
       document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.toast-new-form').addEventListener('submit', function (event) {
           var data = this;
+          data.url.value = window.location.href;
 
           var note = window.NostrTools.finalizeEvent({
             kind: 1,
             created_at: Math.floor(Date.now() / 1000),
-            tags: [],
+            tags: [['r', data.url.value]],
             content: data.message.value,
           }, sk)
+
+         console.log(note);
 
           var formdata = new FormData(data);
           formdata.append('note', JSON.stringify(note));
