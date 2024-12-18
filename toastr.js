@@ -1,7 +1,11 @@
 "use strict";
 
-browser.runtime.sendMessage({ action: "getToasts" }, response => {
-  console.log(response.toasts);
+browser.runtime.sendMessage({ action: "getToasts", domain: window.location.hostname }, response => {
+  console.log("Toastr DB Rows (total): " + response.total + ", Toastr DB Rows (domain): " + response.count);
+  if (response.count >= 0) {
+    document.body.style.border = "5px solid red";
+    //toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
+  }
 });
 
 function toast(parentSelector, data) {
@@ -58,10 +62,3 @@ document.addEventListener('DOMContentLoaded', function() {
     event.preventDefault();
   });
 });
-
-
-  //window.alert(row['message'] + ' - ' + row['username']);
-
-  //toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})   
-
-document.body.style.border = "5px solid red";
