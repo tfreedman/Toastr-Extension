@@ -3,6 +3,7 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="default.css" media="all" />
     <title>Toastr</title>
+    <script src="nostr.bundle.js"></script>
   </head>
   <body>
     <div class="toastr-container">
@@ -70,6 +71,11 @@
         parentNode.appendChild(div)
       }
 
+      let sk = window.NostrTools.generateSecretKey() // `sk` is a Uint8Array
+      let pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
+
+      //let isGood = window.NostrTools.verifyEvent(event);
+
       let url = 'https://toastr.tylerfreedman.com/toasts';
       fetch(url)
       .then(res => res.json())
@@ -83,10 +89,21 @@
       document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.toast-new-form').addEventListener('submit', function (event) {
           var data = this;
+
+          var note = window.NostrTools.finalizeEvent({
+            kind: 1,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [],
+            content: data.message.value,
+          }, sk)
+
+          var formdata = new FormData(data);
+          formdata.append('note', JSON.stringify(note));
+
           var element = Object.fromEntries(new FormData(data))
           fetch(data.getAttribute('action'), {
             method: data.getAttribute('method'),
-            body: new FormData(data)
+            body: formdata
           }).then(res=>res.json())
           .then(out => {
               data.reset();
