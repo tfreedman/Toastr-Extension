@@ -1,7 +1,18 @@
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getToasts") {
     console.log();
-    sendResponse({ toasts: "Toastr DB Rows: " + db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0] });
+
+    const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
+    stmt.bind({$domain: message.domain});
+  
+    var rows = [];
+    // Bind new values
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      rows.push(JSON.stringify(row));     
+    }
+
+    sendResponse({ total: db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0], count: rows.length});
   }
 });
 
