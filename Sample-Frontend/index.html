@@ -74,15 +74,26 @@
       let sk = window.NostrTools.generateSecretKey() // `sk` is a Uint8Array
       let pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
 
-      //let isGood = window.NostrTools.verifyEvent(event);
-
       let url = 'https://toastr.tylerfreedman.com/toasts';
       fetch(url)
       .then(res => res.json())
       .then(out =>
-        out.forEach((element) => 
-          toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
-        )
+        out.forEach((element) => {
+          if (element.note && element.note.length > 0) {
+            note = JSON.parse(element.note);
+            let pk = note.pubkey;
+            let isGood = window.NostrTools.verifyEvent(note, pk);
+            if (isGood) {
+              console.log("Valid");
+              toast('.toasts', {username: element.username, message: note.content, avatar_url: element.avatar_url, timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
+            } else {
+              console.log("Invalid");
+            }
+          } else {
+            console.log("Not a nostr note");
+            toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
+          }
+        })
       )
       .catch(err => console.log(err));
 
