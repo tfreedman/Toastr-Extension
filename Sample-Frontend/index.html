@@ -6,6 +6,14 @@
     <script src="nostr.bundle.js"></script>
   </head>
   <body>
+    <div id="debugger">
+      <form autocomplete="on">
+        Private Key: <input name="privkey" /><br />
+        Domain: <input name="domain" /><br />
+        URL: <input name="url" /><br />
+      </form>
+    </div>
+
     <div class="toastr-container">
       <div class="toasts">
       </div>
@@ -28,7 +36,6 @@
           </form>
         </header>
       </div>
-
     </div>
 
     <script>
@@ -71,31 +78,57 @@
         parentNode.appendChild(div)
       }
 
-      let sk = window.NostrTools.generateSecretKey() // `sk` is a Uint8Array
-      let pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
+      var sk;
+      var pk;
 
-      let url = 'https://toastr.tylerfreedman.com/toasts';
-      fetch(url)
-      .then(res => res.json())
-      .then(out =>
-        out.forEach((element) => {
-          if (element.note && element.note.length > 0) {
-            note = JSON.parse(element.note);
-            let pk = note.pubkey;
-            let isGood = window.NostrTools.verifyEvent(note, pk);
-            if (isGood) {
-              console.log("Valid");
-              toast('.toasts', {username: element.username, message: note.content, avatar_url: element.avatar_url, timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
-            } else {
-              console.log("Invalid");
+      if  (sk === null) {
+        document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.generateSecretKey().toString();
+        localStorage.setItem("privkey", document.querySelector('#debugger input[name="privkey"]').value);
+        sk = Uint8Array.from(localStorage.getItem('privkey').split(',').map(x=>parseInt(x,10)));
+      } else {
+        sk = Uint8Array.from(localStorage.getItem('privkey').split(',').map(x=>parseInt(x,10)));
+        document.querySelector('#debugger input[name="privkey"]').value = localStorage.getItem('privkey');
+      }
+
+      document.querySelector('#debugger input[name="privkey"]').addEventListener("change", function() {
+        pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
+      });
+
+      fetch('https://toastr.tylerfreedman.com/toasts')
+        .then(res => res.json())
+        .then(out =>
+          out.forEach((element) => {
+            console.log(element);
+
+            if (element.note && element.note.length > 0) {
+              var note = JSON.parse(element.note);
+              if (window.NostrTools.verifyEvent(note, note.pubkey)) {
+                // Fetch the username/avatar of the person who posted it
+                fetch('https://toastr.tylerfreedman.com/user/' + note.pubkey).then(res => res.json())
+                  .then(u => {
+                    if (u && u.pubkey && u.content && window.NostrTools.verifyEvent(u, u.pubkey)) {
+                      var user = JSON.parse(u.content);
+                      // Use the display name and profile picture from the kind 0 event we just parsed
+                      console.log("Toasting (nostr + kind0): " + note.content);
+                      toast('.toasts', { username: user.display_name, message: note.content, avatar_url: user.picture, timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
+                    } else {
+                      // There is no kind 0 event for us to parse
+                      console.log("Toasting (nostr only): " + note.content);
+                      toast('.toasts', { username: 'Unknown', message: note.content, avatar_url: '201.png', timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
+                   }
+                  })
+                  .catch(err => console.log(err));
+              } else {
+                console.log('Not a valid nostr event');
+              }
             }
-          } else {
-            console.log("Not a nostr note");
-            toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
+            else if (element.message && element.message.length > 0) {
+              console.log("Toasting (legacy):" + element.message);
+              toast('.toasts', { username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
+            }
           }
-        })
-      )
-      .catch(err => console.log(err));
+        ))
+        .catch (err => console.log(err));
 
       document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.toast-new-form').addEventListener('submit', function (event) {
