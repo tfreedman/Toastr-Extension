@@ -10,6 +10,7 @@
       <form autocomplete="on">
         Private Key: <input name="privkey" /><br />
         URL: <input name="url" /><br />
+        Relays: <input name="relays" />
       </form>
     </div>
 
@@ -91,6 +92,19 @@
 
       document.querySelector('#debugger input[name="privkey"]').addEventListener("change", function() {
         pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
+      });
+
+      var default_relays;
+      if (typeof window.nostr !== 'undefined') {
+        // Detected NIP-07 support
+        default_relays = window.nostr.getRelays();
+      } else {
+        default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
+      }
+      document.querySelector('#debugger input[name="relays"]').value = default_relays;
+
+      document.querySelector('#debugger input[name="relays"]').addEventListener("change", function() {
+        default_relays = document.querySelector('#debugger input[name="relays"]').value.split(',');
       });
 
       fetch('https://toastr.tylerfreedman.com/toasts')
