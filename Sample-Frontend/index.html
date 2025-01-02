@@ -81,11 +81,11 @@
       var pk;
 
       if  (sk === null) {
-        document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.generateSecretKey().toString();
+        document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
         localStorage.setItem("privkey", document.querySelector('#debugger input[name="privkey"]').value);
-        sk = Uint8Array.from(localStorage.getItem('privkey').split(',').map(x=>parseInt(x,10)));
+        sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
       } else {
-        sk = Uint8Array.from(localStorage.getItem('privkey').split(',').map(x=>parseInt(x,10)));
+        sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
         document.querySelector('#debugger input[name="privkey"]').value = localStorage.getItem('privkey');
       }
 
