@@ -21,7 +21,7 @@
       <div class="toast-new">
         <header>
           <img class="avatar" src="133.png" />
-          <form action="https://toastr.tylerfreedman.com/toasts" method="POST" class="toast-new-form" autocomplete="off">
+          <form action="" method="POST" class="toast-new-form" autocomplete="off">
             <input type="hidden" name="domain" value="" />
             <input type="hidden" name="url" value="" />
             <input type="hidden" name="username" value="Eevee" />
@@ -32,152 +32,12 @@
             <input type="hidden" name="reposts" value="0" />
 
             <textarea type="text" name="message" placeholder="Write a comment..."></textarea>
-            <button type="submit">Comment</submit>
+            <button type="submit">Comment</button>
           </form>
         </header>
       </div>
     </div>
 
-    <script>
-
-      function toast(parentSelector, data) {
-        const div = document.createElement('div');
-
-        var epoch_timestamp = new Date(0);
-        epoch_timestamp.setUTCSeconds(data.timestamp);
-
-        div.innerHTML = `
-          <div class="toast">
-            <header>
-              <img class="avatar" src="${data.avatar_url}" />
-              <div>
-                <div class="username">${data.username}</div>
-                <span class="timestamp"><time datetime="${epoch_timestamp}">Posted on ${epoch_timestamp.toLocaleDateString()}</time></span>
-              </div>
-
-            </header>
-            <span class="caption">${data.message}</span>
-            <footer>
-              <span class="replies">
-                <a href="#"><img class="reply" /> ${data.replies}</a>
-              </span>
-              <span class="zaps">
-                <a class="zap" href="#"><img class="zap" /> ${data.zaps}</a>
-              </span>
-              <span class="likes">
-                <a class="like" href="#"><img class="like" /> ${data.likes}</a>
-              </span>
-              <span class="reposts">
-                <a class="repost" href="#"><img class="repost" /> ${data.reposts}</a>
-              </span>
-            </footer>
-          </div>
-        `
-
-        const parentNode = document.querySelector(parentSelector);
-        parentNode.appendChild(div)
-      }
-
-      var sk = localStorage.getItem('privkey');
-      var pk;
-
-      if  (sk === null) {
-        document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
-        localStorage.setItem("privkey", document.querySelector('#debugger input[name="privkey"]').value);
-        sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
-      } else {
-        sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
-        document.querySelector('#debugger input[name="privkey"]').value = localStorage.getItem('privkey');
-      }
-
-      document.querySelector('#debugger input[name="privkey"]').addEventListener("change", function() {
-        pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
-      });
-
-      var default_relays;
-      if (typeof window.nostr !== 'undefined') {
-        // Detected NIP-07 support
-        default_relays = window.nostr.getRelays();
-      } else {
-        default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
-      }
-      document.querySelector('#debugger input[name="relays"]').value = default_relays;
-
-      document.querySelector('#debugger input[name="relays"]').addEventListener("change", function() {
-        default_relays = document.querySelector('#debugger input[name="relays"]').value.split(',');
-      });
-
-      fetch('https://toastr.tylerfreedman.com/toasts')
-        .then(res => res.json())
-        .then(out =>
-          out.forEach((element) => {
-            console.log(element);
-
-            if (element.note && element.note.length > 0) {
-              var note = JSON.parse(element.note);
-              if (window.NostrTools.verifyEvent(note, note.pubkey)) {
-                // Fetch the username/avatar of the person who posted it, if it isn't cached
-
-                const request = new XMLHttpRequest();
-                request.open("GET", 'https://toastr.tylerfreedman.com/user/' + note.pubkey, false); // `false` makes the request synchronous
-                request.send(null);
-
-                if (request.status === 200) {
-                  var u = JSON.parse(request.responseText);
-                  console.log(u);
-                  if (u && u.pubkey && u.content && window.NostrTools.verifyEvent(u, u.pubkey)) {
-                    var user = JSON.parse(u.content);
-                    // Use the display name and profile picture from the kind 0 event we just parsed
-                    console.log("Toasting (nostr + kind0): " + note.content);
-                    toast('.toasts', { username: user.display_name + ' (nostr)', message: note.content, avatar_url: user.picture, timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
-                  }
-                } else if (request.status === 404) {
-                  // There is no kind 0 event for us to parse
-                  console.log("Toasting (nostr only): " + note.content);
-                  toast('.toasts', { username: 'Unknown (nostr)', message: note.content, avatar_url: '201.png', timestamp: note.created_at, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
-                }
-              } else {
-                console.log('Not a valid nostr event');
-              }
-            }
-            else if (element.message && element.message.length > 0) {
-              console.log("Toasting (legacy):" + element.message);
-              toast('.toasts', { username: element.username + ' (legacy)', message: element.message, avatar_url: element.avatar_url, timestamp: element.timestamp, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts })
-            }
-          }
-        ))
-        .catch (err => console.log(err));
-
-      document.addEventListener('DOMContentLoaded', function() {
-        document.querySelector('.toast-new-form').addEventListener('submit', function (event) {
-          var data = this;
-          data.url.value = document.querySelector('#debugger input[name="url"]').value || window.location.href;
-
-          var note = window.NostrTools.finalizeEvent({
-            kind: 1,
-            created_at: Math.floor(Date.now() / 1000),
-            tags: [['r', data.url.value]],
-            content: data.message.value,
-          }, sk)
-
-         console.log(note);
-
-          var formdata = new FormData(data);
-          formdata.append('note', JSON.stringify(note));
-
-          var element = Object.fromEntries(new FormData(data))
-          fetch(data.getAttribute('action'), {
-            method: data.getAttribute('method'),
-            body: formdata
-          }).then(res=>res.json())
-          .then(out => {
-              data.reset();
-              toast('.toasts', {username: element.username, message: element.message, avatar_url: element.avatar_url, timestamp: Date.now() / 1000, replies: element.replies, zaps: element.zaps, likes: element.likes, reposts: element.reposts})
-            }
-          );
-          event.preventDefault();
-        });
-      });
-    </script>
+    <script src="script.js"></script>
   </body>
 </html>
