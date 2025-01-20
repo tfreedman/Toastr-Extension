@@ -4,13 +4,15 @@
     <link rel="stylesheet" href="default.css" media="all" />
     <title>Toastr</title>
     <script src="nostr.bundle.js"></script>
+    <script src="sql-wasm.js"></script>
   </head>
   <body>
     <div id="debugger">
       <form autocomplete="on">
         Private Key: <input name="privkey" /><br />
         URL: <input name="url" /><br />
-        Relays: <input name="relays" />
+        Relays: <input name="relays" /><br />
+        Use Cache: <input name="cache" type="checkbox" />
       </form>
     </div>
 
