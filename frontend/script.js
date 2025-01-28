@@ -35,20 +35,6 @@ function toast(parentSelector, data) {
 
       </header>
       <span class="caption">${data.message}</span>
-      <footer>
-        <span class="replies">
-          <a href="#"><img class="reply" /> ${data.replies}</a>
-        </span>
-        <span class="zaps">
-          <a class="zap" href="#"><img class="zap" /> ${data.zaps}</a>
-        </span>
-        <span class="likes">
-          <a class="like" href="#"><img class="like" /> ${data.likes}</a>
-        </span>
-        <span class="reposts">
-          <a class="repost" href="#"><img class="repost" /> ${data.reposts}</a>
-        </span>
-      </footer>
     </div>
   `
 
@@ -72,15 +58,9 @@ initSqlJs(config).then(function(SQL){
     const url = new URL(taggedUrl);
     var domain = url.hostname.toLowerCase();
     
-
-
     console.log('url: ' + taggedUrl);
     console.log('domain: ' + domain);
-
-    var domain = ''.toLowerCase(); // TODO: get domain from R value
     
-    console.log(note);
-
     console.log('Inserting ' + value['id'] + ' into DB...');
     db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
   }
@@ -91,10 +71,16 @@ initSqlJs(config).then(function(SQL){
 
     console.log(note);
     if (value['kind'] == 0) {
-      console.log('Inserting ' + value['id'] + ' into DB...');
-      db.run("INSERT OR IGNORE INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
+      var existing_note = db.exec("SELECT * FROM notes WHERE pubkey = ? AND kind = 0", [value['pubkey']]).length
+      if (length == 0) {
+        console.log('Inserting ' + value['id'] + ' into DB...');
+        db.run("INSERT INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
+      } else {
+        console.log('Updating ' + value['id'] + ' into DB...');
+        db.run("UPDATE notes SET id = ? created_at = ?, kind = ?, note = ? WHERE pubkey = ? AND created_at < ?)", [value['id'], value['created_at'], value['kind'], note, value['pubkey'], value['created_at']]);
+      }
     } else {
-      console.log('Not inserting ' + value['id'] + ' into DB - not a valid kind 0 event');
+      console.log('Not inserting ' + value['id'] + ' into DB - not a valid kind 0 event'); // Worry about non-kind 0 stuff later
     }
   }
 
@@ -105,15 +91,16 @@ initSqlJs(config).then(function(SQL){
   } else {
     var db = new SQL.Database();
     db.run("CREATE TABLE IF NOT EXISTS toasts (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
-    db.run("CREATE TABLE IF NOT EXISTS notes (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
+    db.run("CREATE TABLE IF NOT EXISTS notes (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
+    db.run("CREATE INDEX idx_toasts_domain ON toasts (domain);")
   }
 
   var dbstr = toBinString(db.export());
   window.localStorage.setItem("toastr.sqlite", dbstr);
   window.db = db;
 
-	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM toasts")[0].values[0][0]);
-  console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 0")[0].values[0][0]);
+	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
+  console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 1")[0].values[0][0]);
   const stmt = db.prepare("SELECT * FROM toasts");
 
   var rows = [];
@@ -121,7 +108,6 @@ initSqlJs(config).then(function(SQL){
   while(stmt.step()) {
 //    const row = stmt.getAsObject();
 //    rows.push(JSON.stringify(row));
-      console.log('OHAI');
   }
 
   // Start Nostr connections
@@ -184,50 +170,81 @@ initSqlJs(config).then(function(SQL){
 
   window.pool = new window.NostrTools.SimplePool()
 
-  window.toasts = [];
-  window.users = {};
-
   document.querySelector('#debugger input[name="privkey"]').disabled = true;
 
-  let h = pool.subscribeMany(
+  let h = window.pool.subscribeMany(
     relays,[
-      {kinds: [0, 1], '#t': "toastr"}
+      {kinds: [1], '#t': "toastr"}
     ],
     {
       onevent(event) {
         if (event && event.pubkey && event.kind == 0) {
-          //window.users[event.pubkey] = event;
+          importNote(event);
         }
         if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
-          window.toasts.push(event);
+          importToast(event);
         }
       },
       oneose() {
-        window.toasts.forEach((event) => {
-          importToast(event);
-        });
-        //window.users.forEach((event) => {
-        //  importNote(event);
-        //});
    			var dbstr = toBinString(window.db.export());
         window.localStorage.setItem("toastr.sqlite", dbstr);
-        drawToasts();
+        console.log('EOSE on toasts - Calling fetchAuthorInfo...')
+        fetchAuthorInfo();
         //h.close()
       }
     }
   )
 
+  function fetchAuthorInfo() {
+    var users = {};
+    var userPubkeys = [];
+
+    var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      var event = JSON.parse(row.note);
+      users[event.pubkey] = event;
+      userPubkeys.push(event.pubkey)
+    }
+
+    let h = pool.subscribeMany(
+      relays,[
+        {kinds: [0], authors: userPubkeys}
+      ],
+      {
+        onevent(event) {
+          if (event && event.pubkey && event.kind == 0) {
+            importNote(event);
+          }
+        },
+        oneose() {
+          var dbstr = toBinString(window.db.export());
+          window.localStorage.setItem("toastr.sqlite", dbstr);
+          drawToasts();
+          //h.close()
+        }
+      }
+    )
+  }
+
   function drawToasts(toasts) {
     console.log("Drawing Toasts!");
-    const stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
-    var rows = [];
+    var users = {}
+    var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      var event = JSON.parse(row.note);
+      users[event.pubkey] = event;
+    }
+
+    stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
     while(stmt.step()) {
       const row = stmt.getAsObject();
       var event = JSON.parse(row.note);
       var username = '';
       var avatar_url = '';
-      if (window.users[event.pubkey]) {
-        var user = JSON.parse(window.users[event.pubkey].content);
+      if (users[event.pubkey]) {
+        var user = JSON.parse(users[event.pubkey].content);
         avatar_url = user.picture;
         username = user.name;
         console.log('Using custom profile image: ' + avatar_url);
@@ -236,14 +253,14 @@ initSqlJs(config).then(function(SQL){
         avatar_url = '201.png'
         username = event.pubkey;
       }
-      toast('.toasts', { username: username + ' (' + event.pubkey + ')', message: event.content, avatar_url: avatar_url, created_at: event.created_at, replies: 0, zaps: 0, likes: 0, reposts: 0 })
+      toast('.toasts', { username: username + ' (' + event.pubkey + ')', message: event.content, avatar_url: avatar_url, created_at: event.created_at})
     }
   }
 
   function uploadNote(data, note) {
     console.log("Sending " + JSON.stringify(note));
     Promise.any(window.pool.publish(relays, note)).then(relay => {
-      toast('.toasts', {username: 'Unknown (nostr)', message: note.content, avatar_url: 0, created_at: Date.now() / 1000, replies: 0, zaps: 0, likes: 0, reposts: 0})
+      toast('.toasts', {username: 'Unknown (nostr)', message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
       data.reset();
     });
   }
