@@ -57,16 +57,45 @@ function toast(parentSelector, data) {
 }
 
 initSqlJs(config).then(function(SQL){
-  function importSQL(value, index, array) {
-    //console.log(value);
-    var domain = ''; // TODO: get domain from R value
-    var url = ''; // TODO: get url from R value
+  function importToast(value, index, array) {
+    console.log(value);
+
     var note = JSON.stringify(value);
 
+    var taggedUrl = '';
+    value["tags"].forEach((tag) => {
+      if (tag[0] == "r" && tag[1].toLowerCase().startsWith('http')) {
+        taggedUrl = tag[1];
+      }
+    });
+
+    const url = new URL(taggedUrl);
+    var domain = url.hostname.toLowerCase();
+    
+
+
+    console.log('url: ' + taggedUrl);
+    console.log('domain: ' + domain);
+
+    var domain = ''.toLowerCase(); // TODO: get domain from R value
+    
     console.log(note);
 
     console.log('Inserting ' + value['id'] + ' into DB...');
-    db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, note) VALUES (?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, url, value['pubkey'], note]);
+    db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
+  }
+
+  function importNote(value, index, array) {
+    console.log(value);
+    var note = JSON.stringify(value);
+
+    console.log(note);
+    if (value['kind'] == 0) {
+      console.log('Inserting ' + value['id'] + ' into DB...');
+      db.run("INSERT OR IGNORE INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
+    } else {
+      console.log('Not inserting ' + value['id'] + ' into DB - not a valid kind 0 event');
+    }
   }
 
   var dbstr = window.localStorage.getItem("toastr.sqlite");
@@ -75,14 +104,16 @@ initSqlJs(config).then(function(SQL){
     var db = new SQL.Database(toBinArray(dbstr));
   } else {
     var db = new SQL.Database();
-    db.run("CREATE TABLE IF NOT EXISTS toasts (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, note TEXT NOT NULL);");
+    db.run("CREATE TABLE IF NOT EXISTS toasts (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
+    db.run("CREATE TABLE IF NOT EXISTS notes (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
   }
 
   var dbstr = toBinString(db.export());
   window.localStorage.setItem("toastr.sqlite", dbstr);
   window.db = db;
 
-	console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts")[0].values[0][0]);
+	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM toasts")[0].values[0][0]);
+  console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 0")[0].values[0][0]);
   const stmt = db.prepare("SELECT * FROM toasts");
 
   var rows = [];
@@ -125,7 +156,7 @@ initSqlJs(config).then(function(SQL){
   var override_relays = true;
 
   if (override_relays) {
-    var relays = ["wss://toastr.tylerfreedman.com"] //relay.primal.net", "wss://nos.lol"] //, 'wss://relay.primal.net']
+    var relays = ["wss://toastr.tylerfreedman.com"] //"wss://relay.primal.net", "wss://nos.lol"]
     document.querySelector('#debugger input[name="relays"]').value = 'Overriding NIP-07 Relays for debugging purposes';
     document.querySelector('#debugger input[name="relays"]').disabled = true;
   } else {
@@ -160,14 +191,12 @@ initSqlJs(config).then(function(SQL){
 
   let h = pool.subscribeMany(
     relays,[
-      //{authors: ['32e1827635450ebb3c5a7d12c1f8e7b2b514439ac10a67eef3d9fd9c5c68e245']},
-      //{authors: ['4ebc074827c53f4782d25fa9b3d1f6fda47ffa46c957015b62e7eea3453907a9']},
       {kinds: [0, 1], '#t': "toastr"}
     ],
     {
       onevent(event) {
         if (event && event.pubkey && event.kind == 0) {
-          window.users[event.pubkey] = event;
+          //window.users[event.pubkey] = event;
         }
         if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
           window.toasts.push(event);
@@ -175,8 +204,11 @@ initSqlJs(config).then(function(SQL){
       },
       oneose() {
         window.toasts.forEach((event) => {
-          importSQL(event);
+          importToast(event);
         });
+        //window.users.forEach((event) => {
+        //  importNote(event);
+        //});
    			var dbstr = toBinString(window.db.export());
         window.localStorage.setItem("toastr.sqlite", dbstr);
         drawToasts();
@@ -186,9 +218,12 @@ initSqlJs(config).then(function(SQL){
   )
 
   function drawToasts(toasts) {
-    window.toasts = window.toasts.sort(({created_at:a}, {created_at:b}) => a-b);
     console.log("Drawing Toasts!");
-    window.toasts.forEach((event) => {
+    const stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+    var rows = [];
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      var event = JSON.parse(row.note);
       var username = '';
       var avatar_url = '';
       if (window.users[event.pubkey]) {
@@ -202,7 +237,7 @@ initSqlJs(config).then(function(SQL){
         username = event.pubkey;
       }
       toast('.toasts', { username: username + ' (' + event.pubkey + ')', message: event.content, avatar_url: avatar_url, created_at: event.created_at, replies: 0, zaps: 0, likes: 0, reposts: 0 })
-    });
+    }
   }
 
   function uploadNote(data, note) {
