@@ -179,10 +179,6 @@ initSqlJs(config).then(function(SQL){
     ],
     {
       onevent(event) {
-        if (event && event.pubkey && event.kind == 0) {
-          importNote(event);
-          dirty = true;
-        }
         if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
           importToast(event);
           dirty = true;
@@ -229,14 +225,14 @@ initSqlJs(config).then(function(SQL){
             var dbstr = toBinString(window.db.export());
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
-          drawToasts();
+          drawToasts(users);
           //h.close()
         }
       }
     )
   }
 
-  function drawToasts(toasts) {
+  function drawToasts(knownUsers) {
     console.log("Drawing Toasts!");
     var users = {}
     var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
@@ -260,7 +256,7 @@ initSqlJs(config).then(function(SQL){
       }
       else {
         avatar_url = '201.png'
-        username = event.pubkey;
+        username = 'Unknown';
       }
       toast('.toasts', { username: username + ' (' + event.pubkey + ')', message: event.content, avatar_url: avatar_url, created_at: event.created_at})
     }
@@ -269,7 +265,7 @@ initSqlJs(config).then(function(SQL){
   function uploadNote(data, note) {
     console.log("Sending " + JSON.stringify(note));
     Promise.any(window.pool.publish(relays, note)).then(relay => {
-      toast('.toasts', {username: 'Unknown (nostr)', message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
+      toast('.toasts', {username: 'Unknown', message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
       data.reset();
     });
   }
