@@ -169,6 +169,7 @@ initSqlJs(config).then(function(SQL){
   }
 
   window.pool = new window.NostrTools.SimplePool()
+  var dirty = false;
 
   document.querySelector('#debugger input[name="privkey"]').disabled = true;
 
@@ -180,14 +181,18 @@ initSqlJs(config).then(function(SQL){
       onevent(event) {
         if (event && event.pubkey && event.kind == 0) {
           importNote(event);
+          dirty = true;
         }
         if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
           importToast(event);
+          dirty = true;
         }
       },
       oneose() {
-   			var dbstr = toBinString(window.db.export());
-        window.localStorage.setItem("toastr.sqlite", dbstr);
+        if (dirty) {
+     			var dbstr = toBinString(window.db.export());
+          window.localStorage.setItem("toastr.sqlite", dbstr);
+        }
         console.log('EOSE on toasts - Calling fetchAuthorInfo...')
         fetchAuthorInfo();
         //h.close()
@@ -198,6 +203,7 @@ initSqlJs(config).then(function(SQL){
   function fetchAuthorInfo() {
     var users = {};
     var userPubkeys = [];
+    var dirty = false;
 
     var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
     while(stmt.step()) {
@@ -215,11 +221,14 @@ initSqlJs(config).then(function(SQL){
         onevent(event) {
           if (event && event.pubkey && event.kind == 0) {
             importNote(event);
+            dirty = true;
           }
         },
         oneose() {
-          var dbstr = toBinString(window.db.export());
-          window.localStorage.setItem("toastr.sqlite", dbstr);
+          if (dirty) {
+            var dbstr = toBinString(window.db.export());
+            window.localStorage.setItem("toastr.sqlite", dbstr);
+          }
           drawToasts();
           //h.close()
         }
