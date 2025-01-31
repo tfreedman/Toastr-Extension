@@ -1,3 +1,11 @@
+function openPage() {
+  browser.tabs.create({
+    url: "https://developer.mozilla.org",
+  });
+}
+
+browser.browserAction.onClicked.addListener(openPage);
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getToasts") {
     console.log();
