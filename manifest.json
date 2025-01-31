@@ -30,10 +30,11 @@
     "sql-wasm.wasm"
   ],
   "browser_action": {
-    "default_popup": "popup/choose_page.html",
+    "default_popup": "background.html",
     "default_icon": {
-      "16": "icons/page-16.png",
-      "32": "icons/page-32.png"
+      "16": "icons/bread_16.png",
+      "32": "icons/bread_32.png",
+      "64": "icons/bread_64.png"
     }
   }
 }
