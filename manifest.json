@@ -9,14 +9,14 @@
     "48": "icons/border-48.png"
   },
   "background": {
-    "page": "background.html",
+    "page": "frontend/index.html",
     "persistent": false
   },
   "content_security_policy": "worker-src 'self'; script-src 'self' 'wasm-unsafe-eval'",
   "content_scripts": [
     {
       "matches": ["*://*.mozilla.org/*"],
-      "js": ["toastr.js"]
+      "js": ["frontend/extension.js", "frontend/script.js"]
     }
   ],
   "host_permissions": [
@@ -30,7 +30,7 @@
     "sql-wasm.wasm"
   ],
   "browser_action": {
-    "default_popup": "background.html",
+    "default_popup": "frontend/index.html",
     "default_icon": {
       "16": "icons/bread_16.png",
       "32": "icons/bread_32.png",
