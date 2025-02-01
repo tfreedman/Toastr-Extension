@@ -102,11 +102,12 @@ initSqlJs(config).then(function(SQL){
 
   if (typeof browser !== "undefined") {
     // Firefox Extension
+    window.browserExtension = true;
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === "getToasts") {
     
         const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
-        stmt.bind({$domain: message.domain});
+        stmt.bind({$domain: window.hostname.domain});
       
         var rows = [];
         // Bind new values
@@ -120,6 +121,7 @@ initSqlJs(config).then(function(SQL){
     });
   } else {
     // Not a browser extension
+    window.browserExtension = false;
   }
 
 	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
@@ -265,7 +267,13 @@ initSqlJs(config).then(function(SQL){
       users[event.pubkey] = event;
     }
 
-    stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+    if (window.browserExtension) {
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
+      stmt.bind({$domain: window.hostname.domain});
+      console.log('Domain: ' + window.hostname.domain);
+    } else {
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+    }
     while(stmt.step()) {
       const row = stmt.getAsObject();
       var event = JSON.parse(row.note);
