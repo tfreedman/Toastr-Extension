@@ -43,6 +43,7 @@ function toast(parentSelector, data) {
 }
 
 initSqlJs(config).then(function(SQL){
+  console.log("Hello from the background script!");
   function importToast(value, index, array) {
     console.log(value);
 
@@ -98,6 +99,28 @@ initSqlJs(config).then(function(SQL){
   var dbstr = toBinString(db.export());
   window.localStorage.setItem("toastr.sqlite", dbstr);
   window.db = db;
+
+  if (typeof browser !== "undefined") {
+    // Firefox Extension
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === "getToasts") {
+    
+        const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
+        stmt.bind({$domain: message.domain});
+      
+        var rows = [];
+        // Bind new values
+        while(stmt.step()) {
+          const row = stmt.getAsObject();
+          rows.push(JSON.stringify(row));     
+        }
+    
+        sendResponse({ total: db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0], domain_count: rows.length});
+      }
+    });
+  } else {
+    // Not a browser extension
+  }
 
 	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
   console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 1")[0].values[0][0]);

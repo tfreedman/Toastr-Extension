@@ -16,7 +16,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.mozilla.org/*"],
-      "js": ["frontend/extension.js", "frontend/script.js"]
+      "js": ["frontend/extension.js"]
     }
   ],
   "host_permissions": [
@@ -25,9 +25,6 @@
   "permissions": [
     "webRequest",
     "unlimitedStorage"
-  ],
-  "web_accessible_resources": [
-    "sql-wasm.wasm"
   ],
   "browser_action": {
     "default_popup": "frontend/index.html",
