@@ -1,3 +1,5 @@
+var browserUrl = "";
+
 config = {
   locateFile: filename => `${filename}`
 }
@@ -103,11 +105,27 @@ initSqlJs(config).then(function(SQL){
   if (typeof browser !== "undefined") {
     // Firefox Extension
     window.browserExtension = true;
+
+    browser.tabs.query({
+      active: true,
+      currentWindow: true
+    }, function(tabs) {
+      var tabURL = tabs[0].url;
+      console.log("TabURL is " + tabURL);
+      //document.querySelector('#url').innerHTML = tabURL;
+      browserUrl = tabURL;
+    });    
+
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === "getToasts") {
-    
+
+        const url = new URL(message.url);
+        var domain = url.hostname.toLowerCase();
+
+        console.log("getToasts URL is " + message.url);
+
         const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
-        stmt.bind({$domain: window.hostname.domain});
+        stmt.bind({$domain: domain});
       
         var rows = [];
         // Bind new values
@@ -268,9 +286,12 @@ initSqlJs(config).then(function(SQL){
     }
 
     if (window.browserExtension) {
+      const url = new URL(browserUrl);
+      var domain = url.hostname.toLowerCase();
+
+      console.log("Filtering to domain name " + domain);
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
-      stmt.bind({$domain: window.hostname.domain});
-      console.log('Domain: ' + window.hostname.domain);
+      stmt.bind({$domain: domain});
     } else {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
     }

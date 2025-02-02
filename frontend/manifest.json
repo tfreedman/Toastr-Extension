@@ -24,7 +24,8 @@
   ],
   "permissions": [
     "webRequest",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "activeTab"
   ],
   "browser_action": {
     "default_popup": "index.html",
