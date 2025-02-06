@@ -112,7 +112,7 @@ initSqlJs(config).then(function(SQL){
     }, function(tabs) {
       var tabURL = tabs[0].url;
       console.log("TabURL is " + tabURL);
-      //document.querySelector('#url').innerHTML = tabURL;
+      document.querySelector('#debugger input[name="url"]').value = tabURL;
       browserUrl = tabURL;
     });    
 
@@ -338,7 +338,7 @@ initSqlJs(config).then(function(SQL){
       var note = window.NostrTools.finalizeEvent({
         kind: 1,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [['r', data.url.value]],
+        tags: [['r', data.url.value], ['t', 'toastr']],
         content: data.message.value,
       }, sk)
       console.log("signed note without nip07: " + note);
