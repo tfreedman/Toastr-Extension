@@ -5,13 +5,15 @@
     <title>Toastr</title>
   </head>
   <body>
-    <div id="debugger">
-      <form autocomplete="on">
-        Private Key: <input name="privkey" /><br />
-        URL: <input name="url" /><br />
-        Relays: <input name="relays" /><br />
-        Use Cache: <input name="cache" type="checkbox" />
-      </form>
+    <div id="sidebar">
+      <div id="debugger">
+        <form autocomplete="on">
+          <label for="privkey">Private Key:</label><input name="privkey" /><br />
+          <label for="url">URL:</label><input name="url" /><br />
+          <label for="relays">Relays:</label><input name="relays" /><br />
+          <label for="cache">Use Cache:</label><input name="cache" type="checkbox" />
+        </form>
+      </div>
     </div>
 
     <div class="toastr-container">

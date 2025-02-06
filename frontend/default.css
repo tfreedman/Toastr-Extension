@@ -1,100 +1,141 @@
 body {
+  border: 0;
   min-width: 500px;
   min-height: 500px;
-}
+  background: #f8f8f8;
+  font-family: 'Inter';
+  font-size: 14px;
 
-.toastr-container {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 300px;
-  margin-right: 20px;
-  margin-top: 20px;
-  overflow: none;
-  font-family: 'Netto OT';
+  #debugger {
+    display: none;
 
-  .toast, .toast-new {
-    background: rgba(0,0,0,0.5);
-    color: #FFF;
-    border-radius: 10px;
-    padding: 10px;
-    margin: 10px;
+    label {
+      width: 100px;
+      text-align: right;
+      padding-right: 5px;
+      padding-bottom: 5px;
+      display: inline-block;
+    }
+  }
 
-    form {
-      width: 100%;
-      clear: both;
-      margin-bottom: 0;
-
-      textarea {
-        resize: vertical;
+  #sidebar {
+    width: 60px;
+    position: fixed;
+    height: 100%;
+    background: #cb0031;
+  }
+  
+  .toastr-container {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 500px;
+    margin-right: 20px;
+    margin-top: 20px;
+    overflow: hidden;
+    font-family: 'Inter';
+  
+    .toast, .toast-new {
+      background: #fff;
+      color: #160b39;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px;
+  
+      form {
         width: 100%;
-        height: auto;
-        overflow: hidden;
-        max-width: 100%;
-        border: none;
-        padding: 10px;
-        background: rgba(0,0,0,0);
-        border-radius: 10px;
-        color: #FFF;
+        clear: both;
+        margin-bottom: 0;
+  
+        textarea {
+          resize: vertical;
+          width: 100%;
+          height: auto;
+          overflow: hidden;
+          max-width: 100%;
+          border: none;
+          padding: 10px;
+          background: rgba(0,0,0,0);
+          border-radius: 10px;
+          color: #bab1a8;
+        }
+  
+        button {
+          float: right;
+          margin-top: 5px;
+        }
+      }
+  
+      header {
+        display: flex;
+        margin-bottom: 10px;
+  
+        img.avatar {
+          background: #F00;
+          width: 50px;
+          border-radius: 50px;
+          height: 50px;
+          margin-right: 5px;
+        }
+  
+        .left {
+          max-width: 250px;
+          .username {
+            font-weight: bold;
+            margin-top: 5px;
+          }
+  
+          .pubkey {
+            font-weight: normal;
+            font-size: 10px;
+            word-wrap: break-word;
+            color: #aaa;
+          }
+        }
+
+        .right {
+          text-align: right;
+          width: 200px;
+          .created_at {
+            font-size: 10px;
+          }
+        }
       }
 
-      button {
-        float: right;
-        margin-top: 5px;
-      }
-    }
+      footer {
+        display: flex;
+        flex-direction: row;
+        border-top: 1px solid #CCC;
+        margin-top: 10px;
+        text-align: center;
 
-    header {
-      display: flex;
-      margin-bottom: 10px;
+        a {color: #FFF; text-decoration: none}
 
-      .username {
-        font-weight: bold;
-        margin-top: 5px;
-      }
+        span {
+          margin-top: 3px;
+          flex: 1;
+          width: 0;
+        }
 
-      img.avatar {
-        background: #F00;
-        width: 50px;
-        border-radius: 50px;
-        height: 50px;
-        margin-right: 5px;
-      }
-    }
+        img {width: 15px; height: 15px; margin-top: 7px}
+        img:hover {text-decoration: underline}
 
-    footer {
-      display: flex;
-      flex-direction: row;
-      border-top: 1px solid #CCC;
-      margin-top: 10px;
-      text-align: center;
+        span.likes {
+          img.like {content: url('like.svg')}
+        }
 
-      a {color: #FFF; text-decoration: none}
-
-      span {
-        margin-top: 3px;
-        flex: 1;
-        width: 0;
-      }
-
-      img {width: 15px; height: 15px; margin-top: 7px}
-      img:hover {text-decoration: underline}
-
-      span.likes {
-        img.like {content: url('like.svg')}
-      }
-
-      span.zaps {
-        img.zap {content: url('zap.svg')}
-      }
-
-      span.replies {
-        img.reply {content: url('reply.svg')}
-        
-      }
-
-      span.reposts {
-        img.repost {content: url('repost.svg')}
+        span.zaps {
+          img.zap {content: url('zap.svg')}
+        }
+  
+        span.replies {
+          img.reply {content: url('reply.svg')}
+          
+        }
+  
+        span.reposts {
+          img.repost {content: url('repost.svg')}
+        }
       }
     }
   }

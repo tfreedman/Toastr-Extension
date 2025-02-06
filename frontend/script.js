@@ -30,9 +30,13 @@ function toast(parentSelector, data) {
     <div class="toast">
       <header>
         <img class="avatar" src="${data.avatar_url}" />
-        <div>
+        <div class="left">
           <div class="username">${data.username}</div>
-          <span class="created_at"><time datetime="${epoch_timestamp}">Posted on ${epoch_timestamp.toLocaleDateString()}</time></span>
+          <div class="pubkey">${data.pubkey}</div>
+        </div>
+
+        <div class="right">
+          <span class="created_at"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
         </div>
 
       </header>
@@ -310,14 +314,14 @@ initSqlJs(config).then(function(SQL){
         avatar_url = '201.png'
         username = 'Unknown';
       }
-      toast('.toasts', { username: username + ' (' + event.pubkey + ')', message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      toast('.toasts', { username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
     }
   }
 
   function uploadNote(data, note) {
     console.log("Sending " + JSON.stringify(note));
     Promise.any(window.pool.publish(relays, note)).then(relay => {
-      toast('.toasts', {username: 'Unknown', message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
+      toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
       data.reset();
     });
   }
