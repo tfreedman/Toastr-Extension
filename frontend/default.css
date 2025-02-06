@@ -1,6 +1,6 @@
 body {
-  border: 0;
-  min-width: 500px;
+  margin: 0;
+  min-width: 600px;
   min-height: 500px;
   background: #f8f8f8;
   font-family: 'Inter';
