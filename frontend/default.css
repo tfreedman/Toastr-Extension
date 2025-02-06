@@ -26,11 +26,9 @@ body {
   }
   
   .toastr-container {
-    position: absolute;
-    right: 0;
-    top: 0;
     width: 500px;
     margin-right: 20px;
+    margin-left: 80px;
     margin-top: 20px;
     overflow: hidden;
     font-family: 'Inter';
@@ -48,21 +46,32 @@ body {
         margin-bottom: 0;
   
         textarea {
+          font-size: 14px;
           resize: vertical;
           width: 100%;
           height: auto;
           overflow: hidden;
+          font-family: 'Inter';
           max-width: 100%;
           border: none;
           padding: 10px;
           background: rgba(0,0,0,0);
           border-radius: 10px;
-          color: #bab1a8;
+          color: #282a51;
         }
   
         button {
           float: right;
           margin-top: 5px;
+          border: none;
+          color: #fff;
+          padding: 10px;
+          background: #cb0031;
+          border-radius: 5px;
+
+          &:hover {
+            background: #990024;
+          }
         }
       }
   
@@ -82,7 +91,6 @@ body {
           max-width: 250px;
           .username {
             font-weight: bold;
-            margin-top: 5px;
           }
   
           .pubkey {
