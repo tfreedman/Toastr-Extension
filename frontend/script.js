@@ -1,10 +1,5 @@
 var browserUrl = "";
-
 var currentURL = "";
-
-
-var toastCount = 0;
-var tabs;
 
 config = {
   locateFile: filename => `${filename}`
@@ -12,18 +7,15 @@ config = {
 
 browser.tabs.onActivated.addListener( function(activeInfo){
   browser.tabs.get(activeInfo.tabId, function(tab){
-    y = tab.url;
-    console.log("you are here: "+y);
-    currentURL = y;
+    currentURL = tab.url;
     setExtensionIcon(tab);
   });
 });
 
 browser.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (tab.active && change.url) {
-      console.log("you are here: "+change.url);
-      currentURL = change.url;
-      setExtensionIcon(tab);
+    currentURL = change.url;
+    setExtensionIcon(tab);
   }
 });
 
@@ -176,28 +168,6 @@ initSqlJs(config).then(function(SQL){
       document.querySelector('#debugger input[name="url"]').value = tabURL;
       browserUrl = tabURL;
     });
-
-    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.action === "getToasts") {
-
-        const url = new URL(message.url);
-        var domain = url.hostname.toLowerCase();
-
-        console.log("getToasts URL is " + message.url);
-
-        const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
-        stmt.bind({$domain: domain});
-
-        var rows = [];
-        // Bind new values
-        while(stmt.step()) {
-          const row = stmt.getAsObject();
-          rows.push(JSON.stringify(row));
-        }
-
-        sendResponse({ total: db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0], domain_count: rows.length});
-      }
-    });
   } else {
     // Not a browser extension
     window.browserExtension = false;
@@ -290,7 +260,7 @@ initSqlJs(config).then(function(SQL){
       },
       oneose() {
         if (dirty) {
-     			var dbstr = toBinString(window.db.export());
+          var dbstr = toBinString(window.db.export());
           window.localStorage.setItem("toastr.sqlite", dbstr);
         }
         console.log('EOSE on toasts - Calling fetchAuthorInfo...')
