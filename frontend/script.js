@@ -1,7 +1,64 @@
 var browserUrl = "";
 
+var currentURL = "";
+
+
+var toastCount = 0;
+var tabs;
+
 config = {
   locateFile: filename => `${filename}`
+}
+
+browser.tabs.onActivated.addListener( function(activeInfo){
+  browser.tabs.get(activeInfo.tabId, function(tab){
+    y = tab.url;
+    console.log("you are here: "+y);
+    currentURL = y;
+    setExtensionIcon(tab);
+  });
+});
+
+browser.tabs.onUpdated.addListener((tabId, change, tab) => {
+  if (tab.active && change.url) {
+      console.log("you are here: "+change.url);
+      currentURL = change.url;
+      setExtensionIcon(tab);
+  }
+});
+
+function setExtensionIcon(tab) {
+   const u = new URL(currentURL);
+   var domain = u.hostname.toLowerCase();
+
+  const stmt = window.db.prepare("SELECT * FROM toasts WHERE domain = $domain");
+  stmt.bind({$domain: domain});
+
+  var rows = [];
+  // Bind new values
+  while(stmt.step()) {
+    const row = stmt.getAsObject();
+    rows.push(JSON.stringify(row));
+  }
+
+  console.log("Setting Extension! @ " + currentURL);
+  if(rows.length > 0) {
+    console.log("Toasting Icon");
+    browser.browserAction.setIcon({
+      path: {
+        '16': "icons/toast_16.png",
+        '32': "icons/toast_32.png",
+        '64': "icons/toast_64.png",
+    }, tabId: tab.id});
+  } else {
+    console.log("Untoasting Icon");
+    browser.browserAction.setIcon({
+      path: {
+        '16': "icons/bread_16.png",
+        '32': "icons/bread_32.png",
+        '64': "icons/bread_64.png",
+    }, tabId: tab.id});
+  }
 }
 
 function toBinArray(str) {
@@ -135,27 +192,7 @@ initSqlJs(config).then(function(SQL){
         // Bind new values
         while(stmt.step()) {
           const row = stmt.getAsObject();
-          rows.push(JSON.stringify(row));     
-        }
-
-        if (rows.length >= 1) {
-          console.log("Toasting Icon...");
-          browser.browserAction.setIcon({
-            path: {
-              16: "icons/toast_16.png",
-              32: "icons/toast_32.png",
-              64: "icons/toast_64.png"
-            },
-          });
-        } else {
-          console.log("Resetting Icon...");
-          browser.browserAction.setIcon({
-            path: {
-              16: "icons/bread_16.png",
-              32: "icons/bread_32.png",
-              64: "icons/bread_64.png"
-            },
-          });
+          rows.push(JSON.stringify(row));
         }
 
         sendResponse({ total: db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0], domain_count: rows.length});
