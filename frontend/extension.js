@@ -6,8 +6,7 @@ if (typeof browser !== "undefined") {
   browser.runtime.sendMessage({ action: "getToasts", url: window.location.href }, response => {
     console.log("Toastr DB Rows (total): " + response.total + ", Toastr DB Rows (domain): " + response.domain_count);
     if (response.domain_count >= 1) {
-      document.body.style.borderTop = "5px solid #cb0031";
-      // TODO: Change extension icon to match
+      //document.body.style.borderTop = "5px solid #cb0031";
     }
   });
 } else {

@@ -118,7 +118,7 @@ initSqlJs(config).then(function(SQL){
       console.log("TabURL is " + tabURL);
       document.querySelector('#debugger input[name="url"]').value = tabURL;
       browserUrl = tabURL;
-    });    
+    });
 
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === "getToasts") {
@@ -130,14 +130,34 @@ initSqlJs(config).then(function(SQL){
 
         const stmt = db.prepare("SELECT * FROM toasts WHERE domain = $domain");
         stmt.bind({$domain: domain});
-      
+
         var rows = [];
         // Bind new values
         while(stmt.step()) {
           const row = stmt.getAsObject();
           rows.push(JSON.stringify(row));     
         }
-    
+
+        if (rows.length >= 1) {
+          console.log("Toasting Icon...");
+          browser.browserAction.setIcon({
+            path: {
+              16: "icons/toast_16.png",
+              32: "icons/toast_32.png",
+              64: "icons/toast_64.png"
+            },
+          });
+        } else {
+          console.log("Resetting Icon...");
+          browser.browserAction.setIcon({
+            path: {
+              16: "icons/bread_16.png",
+              32: "icons/bread_32.png",
+              64: "icons/bread_64.png"
+            },
+          });
+        }
+
         sendResponse({ total: db.exec("SELECT COUNT(*) from toasts;")[0].values[0][0], domain_count: rows.length});
       }
     });
