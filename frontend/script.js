@@ -5,20 +5,6 @@ config = {
   locateFile: filename => `${filename}`
 }
 
-browser.tabs.onActivated.addListener( function(activeInfo){
-  browser.tabs.get(activeInfo.tabId, function(tab){
-    currentURL = tab.url;
-    setExtensionIcon(tab);
-  });
-});
-
-browser.tabs.onUpdated.addListener((tabId, change, tab) => {
-  if (tab.active && change.url) {
-    currentURL = change.url;
-    setExtensionIcon(tab);
-  }
-});
-
 function setExtensionIcon(tab) {
    const u = new URL(currentURL);
    var domain = u.hostname.toLowerCase();
@@ -158,6 +144,20 @@ initSqlJs(config).then(function(SQL){
   if (typeof browser !== "undefined") {
     // Firefox Extension
     window.browserExtension = true;
+
+    browser.tabs.onActivated.addListener( function(activeInfo){
+      browser.tabs.get(activeInfo.tabId, function(tab){
+        currentURL = tab.url;
+        setExtensionIcon(tab);
+      });
+    });
+
+    browser.tabs.onUpdated.addListener((tabId, change, tab) => {
+      if (tab.active && change.url) {
+        currentURL = change.url;
+        setExtensionIcon(tab);
+      }
+    });
 
     browser.tabs.query({
       active: true,
