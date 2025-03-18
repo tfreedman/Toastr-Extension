@@ -527,3 +527,19 @@ initSqlJs(config).then(function(SQL){
     });
   });
 });
+
+
+document.querySelectorAll('#sidebar nav a').forEach(link => {
+  link.addEventListener("click", (e) => {
+    var num = Array.from(document.querySelectorAll("#sidebar nav a")).indexOf(e.currentTarget);
+    document.querySelectorAll('#sidebar nav a').forEach(l => {
+      l.classList.remove("active");
+    });
+    e.currentTarget.classList.add("active")
+    document.querySelectorAll('#container article').forEach(l => {
+      l.style.display = 'none';
+    });
+    document.querySelectorAll('#container article')[num].style.display = 'block';
+    return false;
+  });
+});
