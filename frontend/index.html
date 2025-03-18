@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -6,42 +7,88 @@
   </head>
   <body>
     <div id="sidebar">
-      <div id="debugger">
-        <form autocomplete="on">
-          <label for="privkey">Private Key:</label><input name="privkey" /><br />
-          <label for="url">URL:</label><input name="url" /><br />
-          <label for="relays">Relays:</label><input name="relays" /><br />
-          <label for="cache">Use Cache:</label><input name="cache" type="checkbox" />
-        </form>
-      </div>
+      <svg id="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M210.8 199.4c0 3.1-2.5 5.7-5.7 5.7h-68c-3.1 0-5.7-2.5-5.7-5.7v-15.5c.3-19 2.3-37.2 6.5-45.5 2.5-5 6.7-7.7 11.5-9.1 9.1-2.7 24.9-.9 31.7-1.2 0 0 20.4.8 20.4-10.7s-9.1-8.6-9.1-8.6c-10 .3-17.7-.4-22.6-2.4-8.3-3.3-8.6-9.2-8.6-11.2-.4-23.1-34.5-25.9-64.5-20.1-32.8 6.2.4 53.3.4 116.1v8.4c0 3.1-2.6 5.6-5.7 5.6H57.7c-3.1 0-5.7-2.5-5.7-5.7v-144c0-3.1 2.5-5.7 5.7-5.7h31.7c3.1 0 5.7 2.5 5.7 5.7 0 4.7 5.2 7.2 9 4.5 11.4-8.2 26-12.5 42.4-12.5 36.6 0 64.4 21.4 64.4 68.7v83.2ZM150 99.3c0-6.7-5.4-12.1-12.1-12.1s-12.1 5.4-12.1 12.1 5.4 12.1 12.1 12.1S150 106 150 99.3Z"/></svg>
+
+      <hr />
+
+      <nav>
+        <a href="#" class="active"><svg id="bread" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M256 32C192 32 0 64 0 192c0 35.3 28.7 64 64 64V432c0 26.5 21.5 48 48 48H400c26.5 0 48-21.5 48-48V256c35.3 0 64-28.7 64-64C512 64 320 32 256 32z"/></svg></a>
+        <a href="#"><svg id="gear" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></svg></a>
+        <a href="#"><svg id="info" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M48 80a48 48 0 1 1 96 0A48 48 0 1 1 48 80zM0 224c0-17.7 14.3-32 32-32l64 0c17.7 0 32 14.3 32 32l0 224 32 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 512c-17.7 0-32-14.3-32-32s14.3-32 32-32l32 0 0-192-32 0c-17.7 0-32-14.3-32-32z"/></svg></a>
+      </nav>
     </div>
 
-    <div class="toastr-container">
-      <h1>All Toasts:</h1>
-      <div class="toasts">
-      </div>
+    <div id="container">
+      <article id="toastr">
+        <nav>
+          <a href="#" class="active" data-mode="all">Recent Toasts</a>
+          <a href="#" data-mode="site">This Site</a>
+          <a href="#" data-mode="url">This URL</a>
+        </nav>
 
-      <div class="toast-new">
-        <header>
-          <img class="avatar" src="133.png" />
-          <form action="" method="POST" class="toast-new-form" autocomplete="off">
-            <input type="hidden" name="domain" value="" />
-            <input type="hidden" name="url" value="" />
-            <input type="hidden" name="username" value="Eevee" />
-            <input type="hidden" name="avatar_url" value="133.png" />
-            <input type="hidden" name="likes" value="0" />
-            <input type="hidden" name="zaps" value="0" />
-            <input type="hidden" name="replies" value="0" />
-            <input type="hidden" name="reposts" value="0" />
+        <div class="toasts"></div>
+        <div class="toasts-loading">Loading all toasts...</p></div>
+        <div class="toasts-empty">:(</div>
+      </article>
 
-            <textarea type="text" name="message" placeholder="Write a comment..."></textarea>
-            <button type="submit">Comment</button>
+      <article id="settings">
+        <h1>Settings:</h1>
+  
+        <h2>Profile:</h2>
+        <div id="debugger">
+          <form autocomplete="on">
+            <label for="privkey">Private Key:</label><input name="privkey" /><br />
+            <label for="pubkey">Public Key:</label><input name="pubkey" /><br />
+            <label for="npub">npub:</label><input name="npub" />
           </form>
-        </header>
-      </div>
+
+          <br />
+
+          <form autocomplete="on">
+            <label for="displayname">Display Name:</label><input name="displayname" value="TODO" /><br />
+            <label for="avatar">Avatar:</label><input name="avatar" value="TODO" />
+          </form>
+
+          <h2>Relays:</h2>
+          <form>
+            <label for="relays">Relays:</label><input name="relays" /><br />
+            <div class="relays"></div>
+          </form>
+        </div>
+      </article>
+
+      <article id="about">
+        <h1>About:</h1>
+
+        <p>Toastr is a decentralized Nostr app that lets you comment on any website, using the Nostr protocol. Toastr is available at <a href="https://toastr.net">toastr.net</a> - it's also available as a browser extension <a href="#">here</a>. The browser extension functions identically to the website, but lets you instantly click the extension to see toasts for the page you're currently on. The icon lights up automatically when you're on a website that people have already toasted.</p>
+
+        <p>For privacy reasons, Toastr scrapes all known toasts from the relays you're connected to, stores them in your browser, and then filters based on the exact domain/URL you're looking at to avoid leaking search queries or your browser history.</p>
+
+        <p>A toast is defined as a kind 1 event, with tags <em>['r', &lt;URL&gt;], ['t', 'toastr']</em>. Due to <a href="https://github.com/nostr-protocol/nips/issues/523">limitations in the Nostr protocol</a>, all toasts must be explicitly tagged toastr at this time.</p>
+
+        <p>Toastr implements NIP-07. However, <em>browser extensions cannot interact with other browser extensions</em>, so the extension version of Toastr requires your nsec / preferred nostr relays in order to work. This limitation does not apply to the web version, which is compatible with extensions like nos2x.</p>
+
+      </article>
     </div>
+
     <script src="nostr.bundle.js"></script>
     <script src="sql-wasm.js"></script>
     <script src="script.js"></script>
+    <script>  
+      document.querySelectorAll('#sidebar nav a').forEach(link => {
+        link.addEventListener("click", (e) => {
+          var num = Array.from(document.querySelectorAll("#sidebar nav a")).indexOf(e.currentTarget);
+          document.querySelectorAll('#sidebar nav a').forEach(l => {
+            l.classList.remove("active");
+          });
+          e.currentTarget.classList.add("active")
+          document.querySelectorAll('#container article').forEach(l => {
+            l.style.display = 'none';
+          });
+          document.querySelectorAll('#container article')[num].style.display = 'block';
+          return false;
+        });
+      });
+    </script>
   </body>
 </html>

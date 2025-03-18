@@ -1,4 +1,3 @@
-var browserUrl = "";
 var currentURL = "";
 
 config = {
@@ -58,25 +57,24 @@ function toBinString(arr) {
 
 function toast(parentSelector, data) {
   const div = document.createElement('div');
+  div.classList.add('toast');
   var epoch_timestamp = new Date(0);
   epoch_timestamp.setUTCSeconds(data.created_at);
 
   div.innerHTML = `
-    <div class="toast">
-      <header>
-        <img class="avatar" src="${data.avatar_url}" />
-        <div class="left">
-          <div class="username">${data.username}</div>
-          <div class="pubkey">${data.pubkey}</div>
-        </div>
+    <header>
+      <img class="avatar" src="${data.avatar_url}" />
+      <div class="left">
+        <div class="username">${data.username}</div>
+        <div class="pubkey">${data.pubkey}</div>
+      </div>
 
-        <div class="right">
-          <span class="created_at"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
-        </div>
+      <div class="right">
+        <span class="created_at"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
+      </div>
 
-      </header>
-      <span class="caption">${data.message}</span>
-    </div>
+    </header>
+    <span class="caption">${data.message}</span>
   `
 
   const parentNode = document.querySelector(parentSelector);
@@ -165,8 +163,7 @@ initSqlJs(config).then(function(SQL){
     }, function(tabs) {
       var tabURL = tabs[0].url;
       console.log("TabURL is " + tabURL);
-      document.querySelector('#debugger input[name="url"]').value = tabURL;
-      browserUrl = tabURL;
+      currentURL = tabURL;
     });
   } else {
     // Not a browser extension
@@ -194,7 +191,12 @@ initSqlJs(config).then(function(SQL){
     document.querySelector('#debugger input[name="privkey"]').value = "NIP-07 supported - using browser keys";
     document.querySelector('#debugger input[name="privkey"]').disabled = true;
     window.nostr.getPublicKey().then(pubKey => {
-      pk = pubKey;
+      document.querySelector('#debugger input[name="pubkey"]').value = pubKey;
+      document.querySelector('#debugger input[name="pubkey"]').disabled = true;
+
+      document.querySelector('#debugger input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
+      document.querySelector('#debugger input[name="npub"]').disabled = true;
+      return pubKey;
     })
   } else if (sk === null) {
     document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
@@ -246,6 +248,14 @@ initSqlJs(config).then(function(SQL){
   var dirty = false;
 
   document.querySelector('#debugger input[name="privkey"]').disabled = true;
+
+  if (pk) {
+    document.querySelector('#debugger input[name="pubkey"]').value = pk;
+    document.querySelector('#debugger input[name="pubkey"]').disabled = true;
+
+    document.querySelector('#debugger input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pk);
+    document.querySelector('#debugger input[name="npub"]').disabled = true;
+  }
 
   let h = window.pool.subscribeMany(
     relays,[
@@ -299,15 +309,17 @@ initSqlJs(config).then(function(SQL){
             var dbstr = toBinString(window.db.export());
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
-          drawToasts(users);
+          drawToasts(users, "all");
           //h.close()
         }
       }
     )
   }
 
-  function drawToasts(knownUsers) {
-    console.log("Drawing Toasts!");
+  function drawToasts(knownUsers, mode) {
+    console.log("Drawing Toasts! - Mode = " + mode);
+    document.querySelectorAll('#toastr .toasts-loading')[0].classList.add("active");
+    document.querySelectorAll('#toastr .toasts')[0].innerHTML = '';
     var users = {}
     var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
     while(stmt.step()) {
@@ -316,19 +328,52 @@ initSqlJs(config).then(function(SQL){
       users[event.pubkey] = event;
     }
 
-    if (window.browserExtension) {
-      const url = new URL(browserUrl);
-      var domain = url.hostname.toLowerCase();
+    if (!window.browserExtension) {
+      currentURL = window.location.href;
+    }
 
+    console.log("CurrentURL: " + currentURL);
+
+    if (currentURL.slice(-1) == '#') {
+      currentURL = currentURL.substring(0, currentURL.length - 1);
+    }
+
+    const url = new URL(currentURL);
+    var domain = url.hostname.toLowerCase();
+
+    var emptyMsg = '';
+    var oldHeading = '';
+    var oldSubHeading = '';
+
+    if (mode == "site") {
       console.log("Filtering to domain name " + domain);
+      emptyMsg = "Sorry, there are no toasts for the domain " + domain;
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
       stmt.bind({$domain: domain});
-    } else {
+    } else if (mode == "all") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+      emptyMsg = "Sorry, there are no toasts";
+    } else if (mode == "url") {
+      console.log("Filtering to URL " + currentURL);
+      emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
+      stmt.bind({$url: currentURL});
+    } else if (mode == "site") {
+      console.log("Filtering to URL " + currentURL);
+      emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
+      stmt.bind({$url: currentURL});
     }
+
+    var count = 0;
+
+    var row;
+    var lastRow;
+
     while(stmt.step()) {
-      const row = stmt.getAsObject();
+      row = stmt.getAsObject();
       var event = JSON.parse(row.note);
+      count += 1;
       var username = '';
       var avatar_url = '';
       if (users[event.pubkey]) {
@@ -341,22 +386,105 @@ initSqlJs(config).then(function(SQL){
         avatar_url = '201.png'
         username = 'Unknown';
       }
-      toast('.toasts', { username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      var newHeading = row.domain;
+      var newSubHeading = row.url.split(row.domain, 2)[1];
+
+      if (oldHeading != newHeading) {
+        const parentNode = document.querySelector('.toasts');
+        if (count > 1) {
+          newToast(".toasts", lastRow.url);
+        }
+
+        const heading = document.createElement('h2');
+        heading.innerHTML = `<a href="https://${newHeading}">${newHeading}:</a>`
+
+        parentNode.appendChild(heading);
+        oldHeading = newHeading;
+      }
+
+      if (oldSubHeading != newSubHeading) {
+        const heading = document.createElement('h3');
+        heading.innerHTML = `<a href="https://${newSubHeading}">${newSubHeading}:</a>`
+
+        const parentNode = document.querySelector('.toasts');
+        parentNode.appendChild(heading);
+        oldSubHeading = newSubHeading;
+      }
+
+      toast('.toasts', {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      lastRow = row;
     }
+
+    if (count == 0) {
+      document.querySelectorAll('#toastr .toasts-empty')[0].classList.add("active");
+      document.querySelectorAll('#toastr .toasts')[0].innerHTML = emptyMsg;
+    } else {
+      document.querySelectorAll('#toastr .toasts-empty')[0].classList.remove("active");
+      newToast(".toasts", row.url);
+    }
+    document.querySelectorAll('#toastr .toasts-loading')[0].classList.remove("active");
   }
 
-  function uploadNote(data, note) {
-    console.log("Sending " + JSON.stringify(note));
-    Promise.any(window.pool.publish(relays, note)).then(relay => {
-      toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
-      data.reset();
-    });
+  function newToast(node, url) {
+    const parentNode = document.querySelector(node);
+    const button = document.createElement('button');
+    button.innerHTML = `New Toast`
+    button.setAttribute('type', 'button');
+
+    button.classList.add("toast-submit");
+    button.onclick = function() {
+      let div = this.nextElementSibling;
+      div.classList.remove('hidden');
+
+      this.classList.add('hidden');
+
+      let closeButton = this.nextElementSibling.nextElementSibling;
+      closeButton.classList.remove('hidden');
+    }
+
+    const div = document.createElement('div');
+    div.classList.add('toast-new');
+    div.classList.add('hidden');
+
+    div.innerHTML = `
+      <header>
+        <img class="avatar" src="133.png" />
+        <form action="" method="POST" class="toast-new-form" autocomplete="off">
+          <input type="hidden" name="domain" value="" />
+          <input type="hidden" name="url" value="${url}" />
+          <input type="hidden" name="username" value="Eevee" />
+          <input type="hidden" name="avatar_url" value="133.png" />
+
+          <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
+          <button type="submit" class="toast-submit" onsubmit="newToastSubmit()">Toast</button>
+        </form>
+      </header>
+    `
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = `Cancel`
+    closeButton.setAttribute('type', 'button');
+
+    closeButton.classList.add("toast-close");
+    closeButton.classList.add("hidden");
+    closeButton.onclick = function() {
+      let button = this.previousElementSibling.previousElementSibling;
+      button.classList.remove('hidden');
+
+      let div = this.previousElementSibling;
+      div.classList.add('hidden');
+
+      this.classList.add('hidden');
+
+    }
+
+    parentNode.appendChild(button);
+    parentNode.appendChild(div);
+    parentNode.appendChild(closeButton);
   }
 
-  document.querySelector('.toast-new-form').addEventListener('submit', function (event) {
+  function newToastSubmit(event) {
     event.preventDefault();
     var data = this;
-    data.url.value = document.querySelector('#debugger input[name="url"]').value || window.location.href;
 
     if (typeof window.nostr !== 'undefined') {
       // NIP07 supported
@@ -375,5 +503,27 @@ initSqlJs(config).then(function(SQL){
       console.log("signed note without nip07: " + note);
       uploadNote(data, note);
       }
+  }
+
+  function uploadNote(data, note) {
+    console.log("Sending " + JSON.stringify(note));
+    Promise.any(window.pool.publish(relays, note)).then(relay => {
+      toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
+      data.reset();
+    });
+  }
+
+  document.querySelectorAll('#toastr nav a').forEach(link => {
+    link.addEventListener("click", (e) => {
+      var num = Array.from(document.querySelectorAll("#toastr nav a")).indexOf(e.currentTarget);
+      document.querySelectorAll('#toastr nav a').forEach(l => {
+        l.classList.remove("active");
+      });
+      e.currentTarget.classList.add("active")
+      
+
+      drawToasts(null, e.currentTarget.dataset.mode);
+      return false;
+    });
   });
 });

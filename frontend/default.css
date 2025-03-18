@@ -6,143 +6,218 @@ body {
   font-family: 'Inter';
   font-size: 14px;
 
-  #debugger {
-    display: none;
+  #sidebar {
+    width: 60px;
+    height: 100%;
+    position: fixed;
+    background: #cb0031;
 
-    label {
-      width: 100px;
-      text-align: right;
-      padding-right: 5px;
-      padding-bottom: 5px;
-      display: inline-block;
+    #logo {
+      fill: #FFF;
+    }
+
+    hr {
+      width: 60%;
+      opacity: 0.5;
+    }
+
+    nav {
+      text-align: center;
+      a {
+        display: block;
+        width: 60px;
+        height: 60px;
+  
+        svg {
+          width: 30px;
+          height: 30px;
+          margin: 20px 0;
+        }
+        &.active {opacity: 0.9}
+        opacity: 0.4;
+        #bread, #gear, #info {
+          fill: #FFF
+        }
+      }
     }
   }
 
-  #sidebar {
-    width: 60px;
-    position: fixed;
-    height: 100%;
-    background: #cb0031;
-  }
-  
-  .toastr-container {
-    width: 500px;
+  #container {
+    width: 600px;
     margin-right: 20px;
     margin-left: 80px;
     margin-top: 20px;
     overflow: hidden;
     font-family: 'Inter';
-  
-    .toast, .toast-new {
-      background: #fff;
-      color: #160b39;
-      border-radius: 10px;
-      padding: 10px;
-      margin: 10px;
-  
-      form {
-        width: 100%;
-        clear: both;
-        margin-bottom: 0;
-  
-        textarea {
-          font-size: 14px;
-          resize: vertical;
-          width: 100%;
-          height: auto;
-          overflow: hidden;
-          font-family: 'Inter';
-          max-width: 100%;
-          border: none;
-          padding: 10px;
-          background: rgba(0,0,0,0);
-          border-radius: 10px;
-          color: #282a51;
-        }
-  
-        button {
-          float: right;
-          margin-top: 5px;
-          border: none;
-          color: #fff;
-          padding: 10px;
-          background: #cb0031;
-          border-radius: 5px;
 
-          &:hover {
-            background: #990024;
-          }
-        }
-      }
-  
-      header {
-        display: flex;
-        margin-bottom: 10px;
-  
-        img.avatar {
-          background: #F00;
-          width: 50px;
-          border-radius: 50px;
-          height: 50px;
-          margin-right: 5px;
-        }
-  
-        .left {
-          max-width: 250px;
-          .username {
-            font-weight: bold;
-          }
-  
-          .pubkey {
-            font-weight: normal;
-            font-size: 10px;
-            word-wrap: break-word;
-            color: #aaa;
-          }
-        }
+    h1 {
+      font-size: 30px;
+    }
 
-        .right {
+    & > article:not(:first-child) {
+      display: none;
+    }
+
+    #settings {
+      #debugger {
+        label {
+          width: 100px;
           text-align: right;
-          width: 200px;
-          .created_at {
-            font-size: 10px;
-          }
+          padding-right: 5px;
+          padding-bottom: 5px;
+          display: inline-block;
+        }
+      }
+    }
+
+    #toastr {
+      nav {
+        padding-bottom: 30px;
+        a {
+          display: inline-block;
+          margin: 0 20px 0 0;
+          font-size: 20px;
+          font-weight: bold;
+          opacity: 0.5;
+          &.active {opacity: 1}
         }
       }
 
-      footer {
-        display: flex;
-        flex-direction: row;
-        border-top: 1px solid #CCC;
-        margin-top: 10px;
+      .toast, .toast-new {
+        width: 500px;
+      }
+
+      .hidden {display: none}
+
+      .toast-new {
+        button {float: right}
+        margin-left: 100px;
+      }
+
+      button {
+        margin-top: 5px;
+        border: none;
+        color: #fff;
+        padding: 10px;
+        background: #cb0031;
+        border-radius: 5px;
+        &:hover {
+          background: #990024;
+        }
+      }
+
+      .toasts-loading {
+        &.active {display: visible;}
+        display: none;
+        color: #00F;
+        font-size: 20px;
         text-align: center;
+      }
 
-        a {color: #FFF; text-decoration: none}
+      .toasts-empty {
+        &.active {display: visible;}
+        display: none;
+        color: #00F;
+        font-size: 20px;
+        text-align: center;
+      }
 
-        span {
-          margin-top: 3px;
-          flex: 1;
-          width: 0;
-        }
-
-        img {width: 15px; height: 15px; margin-top: 7px}
-        img:hover {text-decoration: underline}
-
-        span.likes {
-          img.like {content: url('like.svg')}
-        }
-
-        span.zaps {
-          img.zap {content: url('zap.svg')}
+      .toast, .toast-new {
+        background: #fff;
+        color: #160b39;
+        border-radius: 10px;
+        padding: 10px;
+        margin: 10px;
+  
+        form {
+          width: 100%;
+          clear: both;
+          margin-bottom: 0;
+  
+          textarea {
+            font-size: 14px;
+            resize: vertical;
+            width: calc(100% - 20px);
+            height: auto;
+            overflow: hidden;
+            font-family: 'Inter';
+            max-width: 100%;
+            border: none;
+            padding: 10px;
+            background: rgba(0,0,0,0);
+            border-radius: 10px;
+            color: #282a51;
+          }
         }
   
-        span.replies {
-          img.reply {content: url('reply.svg')}
-          
-        }
+        header {
+          display: flex;
+          margin-bottom: 10px;
   
-        span.reposts {
-          img.repost {content: url('repost.svg')}
+          img.avatar {
+            background: #F00;
+            width: 50px;
+            border-radius: 50px;
+            height: 50px;
+            margin-right: 5px;
+          }
+  
+          .left {
+            max-width: 250px;
+            .username {
+              font-weight: bold;
+            }
+  
+            .pubkey {
+              font-weight: normal;
+              font-size: 10px;
+              word-wrap: break-word;
+              color: #aaa;
+            }
+          }
+
+          .right {
+            text-align: right;
+            width: 200px;
+            .created_at {
+              font-size: 10px;
+            }
+          }
+        }
+
+        footer {
+          display: flex;
+          flex-direction: row;
+          border-top: 1px solid #CCC;
+          margin-top: 10px;
+          text-align: center;
+
+          a {color: #FFF; text-decoration: none}
+
+          span {
+            margin-top: 3px;
+            flex: 1;
+            width: 0;
+          }
+  
+          img {width: 15px; height: 15px; margin-top: 7px}
+          img:hover {text-decoration: underline}
+
+          span.likes {
+            img.like {content: url('like.svg')}
+          }
+
+          span.zaps {
+            img.zap {content: url('zap.svg')}
+          }
+  
+          span.replies {
+            img.reply {content: url('reply.svg')}
+          }
+  
+          span.reposts {
+            img.repost {content: url('repost.svg')}
+          }
         }
       }
     }
