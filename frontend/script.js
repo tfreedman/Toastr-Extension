@@ -82,7 +82,6 @@ function toast(parentSelector, data) {
 }
 
 initSqlJs(config).then(function(SQL){
-  console.log("Hello from the background script!");
   function importToast(value, index, array) {
     console.log(value);
 
@@ -309,7 +308,21 @@ initSqlJs(config).then(function(SQL){
             var dbstr = toBinString(window.db.export());
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
-          drawToasts(users, "all");
+          if (window.browserExtension) {
+            drawToasts(users, "url");
+            document.querySelectorAll('#toastr nav a').forEach(l => {
+              if (l.dataset.mode == "url") {
+                l.classList.add("active");
+              }
+            });
+          } else {
+            drawToasts(users, "all");
+            document.querySelectorAll('#toastr nav a').forEach(l => {
+              if (l.dataset.mode == "all") {
+                l.classList.add("active");
+              }
+            });
+          }
           //h.close()
         }
       }
