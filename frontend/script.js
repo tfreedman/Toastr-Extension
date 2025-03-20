@@ -57,6 +57,18 @@ function toBinString(arr) {
   return strings.join('');
 }
 
+function displayRelays(relays) {
+  window.relays = relays;
+  const div = document.createElement('div');
+  relays.forEach((relay) => {
+    div.innerHTML += `
+      <input class="relay" name="relay[]" disabled value="${relay}" /><br />
+    `
+  });
+
+  document.querySelector('#settings .relays').innerHTML = div.innerHTML;  
+}
+
 function setProfile(pubKey) {
   if (pubKey !== undefined) {
     window.pubKey = pubKey;
@@ -351,37 +363,28 @@ initSqlJs(config).then(function(SQL){
   });
 
   var default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
+  var relays = [];
   var override_relays = true;
 
   if (override_relays) {
-    var relays = ["wss://toastr.tylerfreedman.com"] //"wss://relay.primal.net", "wss://nos.lol"]
-    document.querySelector('#relays input[name="relays"]').value = 'Overriding NIP-07 Relays for debugging purposes';
-    document.querySelector('#relays input[name="relays"]').disabled = true;
+    var relays = ["wss://toastr.tylerfreedman.com"]
+    document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
   } else {
     if (typeof window.nostr !== 'undefined') {
       // Detected NIP-07 support
       window.nostr.getRelays().then(r => {
-        var relayString = "";
-        Object.entries(r).forEach(([key, value]) => {
-          if (relayString != "") {
-            relayString += ",";
-          }
-          relayString += key;
-        });
-        relays.push(key);
-        document.querySelector('#relays input[name="relays"]').value = relayString;
+        for (const [key, value] of Object.entries(r)) {
+          relays.push(key);
+        }
+        displayRelays(relays);
       })
     } else {
-      relays = default_relays;
+      relays.concat(default_relays);
     }
-    document.querySelector('#relays input[name="relays"]').value = default_relays;
-    document.querySelector('#relays input[name="relays"]').addEventListener("change", function() {
-      relays = document.querySelector('#relays input[name="relays"]').value.split(',');
-    });
   }
 
   window.pool = new window.NostrTools.SimplePool()
-  window.relays = relays;
+  displayRelays(relays);
 
   var dirty = false;
 
