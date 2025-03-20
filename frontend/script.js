@@ -154,7 +154,6 @@ function uploadProfileEvent(note) {
 
 function newToastSubmit(event) {
   event.preventDefault();
-  window.data = event.target; // TEMP
   var data = event.target;
 
   if (typeof window.nostr !== 'undefined') {
@@ -177,11 +176,10 @@ function newToastSubmit(event) {
 }
 
 function uploadNote(data, note, parent) {
-  window.data = data;
-
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
     var avatar_url = '';
+    var username = '';
     if (window.users[note.pubkey]) {
       var user = JSON.parse(users[note.pubkey].content);
       avatar_url = user.picture;
@@ -191,14 +189,14 @@ function uploadNote(data, note, parent) {
       avatar_url = '201.png'
       username = 'Unknown';
     }
-    toast(parent.querySelector('.toasts'), {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+    toast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
 
     // Hide Cancel Button
     parent.querySelector('.toast-close').classList.add('hidden');
     // Hide Message Box
     parent.querySelector('.toast-new').classList.add('hidden');
     // Show New Toast
-    parent.querySelector('.toast-submit').classList.remove('hidden');
+    parent.querySelector('.toast-new-button').classList.remove('hidden');
     data.reset();
   });
 }
@@ -468,8 +466,10 @@ initSqlJs(config).then(function(SQL){
       users[event.pubkey] = event;
     }
 
+    // TODO: PASS IN URL
     if (!window.browserExtension) {
-      currentURL = window.location.href;
+      //currentURL = window.location.href;
+      currentURL = 'https://news.ycombinator.com/item?id=43425655'
     }
 
     console.log("CurrentURL: " + currentURL);
@@ -480,6 +480,7 @@ initSqlJs(config).then(function(SQL){
 
     const url = new URL(currentURL);
     var domain = url.hostname.toLowerCase();
+    // END TODO
 
     var emptyMsg = '';
     var oldHeading = '';
@@ -572,32 +573,35 @@ initSqlJs(config).then(function(SQL){
       lastRow = row;
     }
 
+    container.querySelector('.toasts-loading').classList.remove("active");
     if (count == 0) {
       container.querySelector('.toasts-empty').classList.add("active");
       container.querySelector('.toasts').innerHTML = emptyMsg;
     } else {
       container.querySelector('.toasts-empty').classList.remove("active");
-      if (mode != "recent" && !mode.startsWith("domain-")) {
-        newToast(container, row.url);
-      } else {
-      container.querySelector('.toast-submit').classList.add("hidden");
-      }
     }
-    container.querySelector('.toasts-loading').classList.remove("active");
+    if (mode.startsWith('url-')) {
+      newToast(container, currentURL);
+    } else {
+      // Hide New Toast Button
+      try {
+        container.querySelector('.toast-new-button').classList.add("hidden");
+      } catch (e) {}
+    }
   }
 
   function newToast(node, url) {
     if (node.querySelector('.toast-new') !== null) {
-      try {
-        node.querySelector(input[name="url"]).value = url; // Update the URL of the newToast form
-      } catch (e) {}
+      console.log('New toast form already exists - showing the old one');
+      node.querySelector('input[name="url"]').value = url; // Update the URL of the newToast form
+      node.querySelector('.toast-new-button').classList.remove("hidden");
       return;
     }
     const button = document.createElement('button');
     button.innerHTML = `New Toast`
     button.setAttribute('type', 'button');
 
-    button.classList.add("toast-submit");
+    button.classList.add("toast-new-button");
     button.onclick = function() {
       let div = this.nextElementSibling;
       div.classList.remove('hidden');
@@ -629,7 +633,7 @@ initSqlJs(config).then(function(SQL){
           <input type="hidden" name="url" value="${url}" />
   
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
-          <button type="submit" class="toast-submit">Toast</button>
+          <button type="submit" class="toast-submit-button">Toast</button>
         </form>
       </header>
     `
