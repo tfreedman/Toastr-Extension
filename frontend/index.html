@@ -21,14 +21,16 @@
     <div id="container">
       <article id="toastr">
         <nav>
-          <a href="#" data-mode="all">Recent Toasts</a>
+          <a href="#" data-mode="recent">Recent Toasts</a>
           <a href="#" data-mode="site">This Site</a>
           <a href="#" data-mode="url">This URL</a>
         </nav>
 
-        <div class="toasts"></div>
-        <div class="toasts-loading">Loading all toasts...</p></div>
-        <div class="toasts-empty">:(</div>
+        <div class="toasts-container">
+          <div class="toasts"></div>
+          <div class="toasts-loading">Loading all toasts...</p></div>
+          <div class="toasts-empty">:(</div>
+        </div>
       </article>
 
       <article id="settings">

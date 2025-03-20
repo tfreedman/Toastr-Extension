@@ -142,13 +142,14 @@ function uploadProfileEvent(note) {
 
 function newToastSubmit(event) {
   event.preventDefault();
+  window.data = event.target; // TEMP
   var data = event.target;
 
   if (typeof window.nostr !== 'undefined') {
     // NIP07 supported
     window.nostr.signEvent({ created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value }).then(note => {
       console.log("signed note via nip07: " + note);
-      uploadNote(data, note);
+      uploadNote(data, note, data.parentElement.parentElement.parentElement);
     })
   } else {
   // NIP07 unsupported
@@ -159,11 +160,13 @@ function newToastSubmit(event) {
       content: data.message.value,
     }, sk)
     console.log("signed note without nip07: " + note);
-    uploadNote(data, note);
+    uploadNote(data, note, data.parentElement.parentElement.parentElement);
   }
 }
 
-function uploadNote(data, note) {
+function uploadNote(data, note, parent) {
+  window.data = data;
+
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
     var avatar_url = '';
@@ -176,12 +179,19 @@ function uploadNote(data, note) {
       avatar_url = '201.png'
       username = 'Unknown';
     }
-    toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+    toast(parent.querySelector('.toasts'), {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+
+    // Hide Cancel Button
+    parent.querySelector('.toast-close').classList.add('hidden');
+    // Hide Message Box
+    parent.querySelector('.toast-new').classList.add('hidden');
+    // Show New Toast
+    parent.querySelector('.toast-submit').classList.remove('hidden');
     data.reset();
   });
 }
 
-function toast(parentSelector, data) {
+function toast(parent, data) {
   const div = document.createElement('div');
   div.classList.add('toast');
   var epoch_timestamp = new Date(0);
@@ -203,8 +213,7 @@ function toast(parentSelector, data) {
     <span class="caption">${data.message}</span>
   `
 
-  const parentNode = document.querySelector(parentSelector);
-  parentNode.appendChild(div)
+  parent.appendChild(div)
 }
 
 initSqlJs(config).then(function(SQL){
@@ -436,16 +445,16 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (window.browserExtension) {
-            drawToasts(window.users, "url");
+            drawToasts(document.querySelector('.toasts-container'), window.users, "url");
             document.querySelectorAll('#toastr nav a').forEach(l => {
               if (l.dataset.mode == "url") {
                 l.classList.add("active");
               }
             });
           } else {
-            drawToasts(window.users, "all");
+            drawToasts(document.querySelector('.toasts-container'), window.users, "recent");
             document.querySelectorAll('#toastr nav a').forEach(l => {
-              if (l.dataset.mode == "all") {
+              if (l.dataset.mode == "recent") {
                 l.classList.add("active");
               }
             });
@@ -457,10 +466,11 @@ initSqlJs(config).then(function(SQL){
     )
   }
 
-  function drawToasts(knownUsers, mode) {
+  function drawToasts(container, knownUsers, mode) {
     console.log("Drawing Toasts! - Mode = " + mode);
-    document.querySelectorAll('#toastr .toasts-loading')[0].classList.add("active");
-    document.querySelectorAll('#toastr .toasts')[0].innerHTML = '';
+    container.querySelector('.toasts-loading').classList.add("active");
+    container.querySelector('.toasts').innerHTML = '';
+
     var users = {}
     var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
     while(stmt.step()) {
@@ -491,7 +501,7 @@ initSqlJs(config).then(function(SQL){
       emptyMsg = "Sorry, there are no toasts for the domain " + domain;
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
       stmt.bind({$domain: domain});
-    } else if (mode == "all") {
+    } else if (mode == "recent") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
       emptyMsg = "Sorry, there are no toasts";
     } else if (mode == "url") {
@@ -507,7 +517,6 @@ initSqlJs(config).then(function(SQL){
     }
 
     var count = 0;
-
     var row;
     var lastRow;
 
@@ -530,43 +539,39 @@ initSqlJs(config).then(function(SQL){
       var newSubHeading = row.url.split(row.domain, 2)[1];
 
       if (oldHeading != newHeading) {
-        const parentNode = document.querySelector('.toasts');
-        if (count > 1) {
-          newToast(".toasts", lastRow.url);
-        }
-
         const heading = document.createElement('h2');
         heading.innerHTML = `<a href="https://${newHeading}">${newHeading}:</a>`
-
-        parentNode.appendChild(heading);
+        container.querySelector('.toasts').appendChild(heading);
         oldHeading = newHeading;
       }
 
       if (oldSubHeading != newSubHeading) {
         const heading = document.createElement('h3');
         heading.innerHTML = `<a href="https://${newSubHeading}">${newSubHeading}:</a>`
-
-        const parentNode = document.querySelector('.toasts');
-        parentNode.appendChild(heading);
+        container.querySelector('.toasts').appendChild(heading);
         oldSubHeading = newSubHeading;
       }
-
-      toast('.toasts', {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      toast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
       lastRow = row;
     }
 
     if (count == 0) {
-      document.querySelectorAll('#toastr .toasts-empty')[0].classList.add("active");
-      document.querySelectorAll('#toastr .toasts')[0].innerHTML = emptyMsg;
+      container.querySelector('.toasts-empty').classList.add("active");
+      container.querySelector('.toasts').innerHTML = emptyMsg;
     } else {
-      document.querySelectorAll('#toastr .toasts-empty')[0].classList.remove("active");
-      newToast(".toasts", row.url);
+      container.querySelector('.toasts-empty').classList.remove("active");
+      if (mode != "recent") {
+        newToast(container, row.url);
+      }
     }
-    document.querySelectorAll('#toastr .toasts-loading')[0].classList.remove("active");
+    container.querySelector('.toasts-loading').classList.remove("active");
   }
 
   function newToast(node, url) {
-    const parentNode = document.querySelector(node);
+    if (node.querySelector('.toast-new') !== null) {
+      node.querySelector(input[name="url"]).value = url; // Update the URL of the newToast form
+      return;
+    }
     const button = document.createElement('button');
     button.innerHTML = `New Toast`
     button.setAttribute('type', 'button');
@@ -590,7 +595,6 @@ initSqlJs(config).then(function(SQL){
       avatarURL = '201.png'
     }
     
-
     const div = document.createElement('div');
     div.classList.add('toast-new');
     div.classList.add('hidden');
@@ -598,6 +602,7 @@ initSqlJs(config).then(function(SQL){
     div.innerHTML = `
       <header>
         <img class="avatar" src="${avatarURL}" />
+
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="domain" value="" />
           <input type="hidden" name="url" value="${url}" />
@@ -625,9 +630,9 @@ initSqlJs(config).then(function(SQL){
 
     }
 
-    parentNode.appendChild(button);
-    parentNode.appendChild(div);
-    parentNode.appendChild(closeButton);
+    node.append(button);
+    node.append(div);
+    node.append(closeButton);
   }
 
   document.querySelectorAll('#toastr nav a').forEach(link => {
@@ -638,8 +643,7 @@ initSqlJs(config).then(function(SQL){
       });
       e.currentTarget.classList.add("active")
       
-
-      drawToasts(null, e.currentTarget.dataset.mode);
+      drawToasts(document.querySelector('.toasts-container'), null, e.currentTarget.dataset.mode);
       return false;
     });
   });
