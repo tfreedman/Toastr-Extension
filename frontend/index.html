@@ -35,21 +35,23 @@
         <h1>Settings:</h1>
   
         <h2>Profile:</h2>
-        <div id="debugger">
-          <form autocomplete="on">
+        <div id="profile">
+          <form>
             <label for="privkey">Private Key:</label><input name="privkey" /><br />
             <label for="pubkey">Public Key:</label><input name="pubkey" /><br />
-            <label for="npub">npub:</label><input name="npub" />
+            <label for="npub">npub:</label><input name="npub" /><br />
+            <br />
+            <label for="name">Name:</label><input name="name" value="" /><br />
+            <label for="display_name">Display Name:</label><input name="display_name" value="" /><br />
+            <label for="website">Website:</label><input name="website" value="" /><br />
+            <label for="banner">Banner (URL):</label><input name="banner" value="" /><br />
+            <label for="picture">Picture (URL):</label><input name="picture" value="" /><br />
+            <button type="button">Update</button>
           </form>
+        </div>
 
-          <br />
-
-          <form autocomplete="on">
-            <label for="displayname">Display Name:</label><input name="displayname" value="TODO" /><br />
-            <label for="avatar">Avatar:</label><input name="avatar" value="TODO" />
-          </form>
-
-          <h2>Relays:</h2>
+        <h2>Relays:</h2>
+        <div id="relays">
           <form>
             <label for="relays">Relays:</label><input name="relays" /><br />
             <div class="relays"></div>

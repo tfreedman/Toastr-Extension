@@ -1,4 +1,6 @@
 var currentURL = "";
+var users = {};
+var pubKey;
 
 config = {
   locateFile: filename => `${filename}`
@@ -55,6 +57,130 @@ function toBinString(arr) {
   return strings.join('');
 }
 
+function setProfile(pubKey) {
+  if (pubKey !== undefined) {
+    window.pubKey = pubKey;
+    document.querySelector('#profile input[name="pubkey"]').value = pubKey;
+    document.querySelector('#profile input[name="pubkey"]').disabled = true;
+    document.querySelector('#profile input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
+    document.querySelector('#profile input[name="npub"]').disabled = true;
+  
+    document.querySelector('#profile button').addEventListener('click', updateProfile);
+
+    console.log(pubKey);
+
+    console.log("Users length: " + Object.keys(window.users).length);
+
+    if (window.users[pubKey] !== undefined) {
+      console.log("There's profile data!");
+      var profile = JSON.parse(window.users[pubKey].content);
+      if (profile.name !== undefined) {
+        document.querySelector('#profile input[name="name"]').value = profile.name;
+      }
+      if (profile.displayName !== undefined) {
+        document.querySelector('#profile input[name="display_name"]').value = profile.displayName;
+      }
+      if (profile.website !== undefined) {
+        document.querySelector('#profile input[name="website"]').value = profile.website;
+      }
+      if (profile.banner !== undefined) {
+        document.querySelector('#profile input[name="banner"]').value = profile.banner;
+      }
+      if (profile.picture !== undefined) {
+        document.querySelector('#profile input[name="picture"]').value = profile.picture;
+      }
+      console.log(users[pubKey]);
+    } else {
+      console.log("No profile data :(");
+    }
+  }
+}
+
+function updateProfile() {
+  var content = {};
+  var name = document.querySelector('#profile input[name="name"]').value
+  var displayName = document.querySelector('#profile input[name="display_name"]').value
+  var website = document.querySelector('#profile input[name="website"]').value
+  var banner = document.querySelector('#profile input[name="banner"]').value
+  var picture = document.querySelector('#profile input[name="picture"]').value
+
+  if (name.length > 0) {content.name = name}
+  if (displayName.length > 0) {content.displayName = displayName}
+  if (website.length > 0) {content.website = website}
+  if (banner.length > 0) {content.banner = banner}
+  if (picture.length > 0) {content.picture = picture}
+  if (typeof window.nostr !== 'undefined') {
+    // NIP07 supported
+    window.nostr.signEvent({
+      created_at: Math.floor(Date.now() / 1000),
+       kind: 0,
+       tags: [],
+       content: JSON.stringify(content)
+    }).then(event => {
+      console.log("signed event via nip07: " + event);
+      uploadProfileEvent(event);
+    })
+  } else {
+  // NIP07 unsupported
+    var event = window.NostrTools.finalizeEvent({
+      kind: 0,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content: JSON.stringify(content),
+    }, sk)
+    console.log("signed event without nip07: " + event);
+    uploadProfileEvent(event);
+  }
+}
+
+function uploadProfileEvent(note) {
+  console.log("Sending " + JSON.stringify(note));
+  Promise.any(window.pool.publish(relays, note)).then(relay => {
+    console.log("Uploaded kind 0 event")
+  });
+}
+
+function newToastSubmit(event) {
+  event.preventDefault();
+  var data = event.target;
+
+  if (typeof window.nostr !== 'undefined') {
+    // NIP07 supported
+    window.nostr.signEvent({ created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value }).then(note => {
+      console.log("signed note via nip07: " + note);
+      uploadNote(data, note);
+    })
+  } else {
+  // NIP07 unsupported
+    var note = window.NostrTools.finalizeEvent({
+      kind: 1,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['r', data.url.value], ['t', 'toastr']],
+      content: data.message.value,
+    }, sk)
+    console.log("signed note without nip07: " + note);
+    uploadNote(data, note);
+  }
+}
+
+function uploadNote(data, note) {
+  console.log("Sending " + JSON.stringify(note));
+  Promise.any(window.pool.publish(relays, note)).then(relay => {
+    var avatar_url = '';
+    if (window.users[note.pubkey]) {
+      var user = JSON.parse(users[note.pubkey].content);
+      avatar_url = user.picture;
+      username = user.name;
+    }
+    else {
+      avatar_url = '201.png'
+      username = 'Unknown';
+    }
+    toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+    data.reset();
+  });
+}
+
 function toast(parentSelector, data) {
   const div = document.createElement('div');
   div.classList.add('toast');
@@ -105,18 +231,25 @@ initSqlJs(config).then(function(SQL){
   }
 
   function importNote(value, index, array) {
-    console.log(value);
     var note = JSON.stringify(value);
-
-    console.log(note);
     if (value['kind'] == 0) {
       var existing_note = db.exec("SELECT * FROM notes WHERE pubkey = ? AND kind = 0", [value['pubkey']]).length
       if (length == 0) {
         console.log('Inserting ' + value['id'] + ' into DB...');
+        window.users[value['pubkey']] = value;
+        if (value['pubkey'] == window.pubKey) {
+          setProfile(window.pubKey);
+        }
         db.run("INSERT INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
+        console.log('Adding ' + value['pubkey'] + ' to window.users...');
       } else {
         console.log('Updating ' + value['id'] + ' into DB...');
+        window.users[value['pubkey']] = value;
+        if (value['pubkey'] == window.pubKey) {
+          setProfile(window.pubKey);
+        }
         db.run("UPDATE notes SET id = ? created_at = ?, kind = ?, note = ? WHERE pubkey = ? AND created_at < ?)", [value['id'], value['created_at'], value['kind'], note, value['pubkey'], value['created_at']]);
+        console.log('Adding ' + value['pubkey'] + ' to window.users...');
       }
     } else {
       console.log('Not inserting ' + value['id'] + ' into DB - not a valid kind 0 event'); // Worry about non-kind 0 stuff later
@@ -187,39 +320,34 @@ initSqlJs(config).then(function(SQL){
 
   if (typeof window.nostr !== 'undefined') {
     // Detected NIP-07 support
-    document.querySelector('#debugger input[name="privkey"]').value = "NIP-07 supported - using browser keys";
-    document.querySelector('#debugger input[name="privkey"]').disabled = true;
+    document.querySelector('#profile input[name="privkey"]').value = "NIP-07 supported - using browser keys";
+    document.querySelector('#profile input[name="privkey"]').disabled = true;
     window.nostr.getPublicKey().then(pubKey => {
-      document.querySelector('#debugger input[name="pubkey"]').value = pubKey;
-      document.querySelector('#debugger input[name="pubkey"]').disabled = true;
-
-      document.querySelector('#debugger input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
-      document.querySelector('#debugger input[name="npub"]').disabled = true;
+      setProfile(pubKey);
       return pubKey;
     })
   } else if (sk === null) {
-    document.querySelector('#debugger input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
-    localStorage.setItem("privkey", document.querySelector('#debugger input[name="privkey"]').value);
+    document.querySelector('#profile input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
+    localStorage.setItem("privkey", document.querySelector('#profile input[name="privkey"]').value);
     sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
     pk = window.NostrTools.getPublicKey(sk);
   } else {
     sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
-    document.querySelector('#debugger input[name="privkey"]').value = localStorage.getItem('privkey');
+    document.querySelector('#profile input[name="privkey"]').value = localStorage.getItem('privkey');
     pk = window.NostrTools.getPublicKey(sk);
   }
 
-  document.querySelector('#debugger input[name="privkey"]').addEventListener("change", function() {
+  document.querySelector('#profile input[name="privkey"]').addEventListener("change", function() {
     pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
   });
 
   var default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
-  var relays;
   var override_relays = true;
 
   if (override_relays) {
     var relays = ["wss://toastr.tylerfreedman.com"] //"wss://relay.primal.net", "wss://nos.lol"]
-    document.querySelector('#debugger input[name="relays"]').value = 'Overriding NIP-07 Relays for debugging purposes';
-    document.querySelector('#debugger input[name="relays"]').disabled = true;
+    document.querySelector('#relays input[name="relays"]').value = 'Overriding NIP-07 Relays for debugging purposes';
+    document.querySelector('#relays input[name="relays"]').disabled = true;
   } else {
     if (typeof window.nostr !== 'undefined') {
       // Detected NIP-07 support
@@ -232,28 +360,26 @@ initSqlJs(config).then(function(SQL){
           relayString += key;
         });
         relays.push(key);
-        document.querySelector('#debugger input[name="relays"]').value = relayString;
+        document.querySelector('#relays input[name="relays"]').value = relayString;
       })
     } else {
       relays = default_relays;
     }
-    document.querySelector('#debugger input[name="relays"]').value = default_relays;
-    document.querySelector('#debugger input[name="relays"]').addEventListener("change", function() {
-      relays = document.querySelector('#debugger input[name="relays"]').value.split(',');
+    document.querySelector('#relays input[name="relays"]').value = default_relays;
+    document.querySelector('#relays input[name="relays"]').addEventListener("change", function() {
+      relays = document.querySelector('#relays input[name="relays"]').value.split(',');
     });
   }
 
   window.pool = new window.NostrTools.SimplePool()
+  window.relays = relays;
+
   var dirty = false;
 
-  document.querySelector('#debugger input[name="privkey"]').disabled = true;
+  document.querySelector('#profile input[name="privkey"]').disabled = true;
 
   if (pk) {
-    document.querySelector('#debugger input[name="pubkey"]').value = pk;
-    document.querySelector('#debugger input[name="pubkey"]').disabled = true;
-
-    document.querySelector('#debugger input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pk);
-    document.querySelector('#debugger input[name="npub"]').disabled = true;
+    setProfile(pk);
   }
 
   let h = window.pool.subscribeMany(
@@ -280,19 +406,20 @@ initSqlJs(config).then(function(SQL){
   )
 
   function fetchAuthorInfo() {
-    var users = {};
     var userPubkeys = [];
     var dirty = false;
 
-    var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
+    // Get the public keys of everyone who's written a toast
+    var stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
     while(stmt.step()) {
       const row = stmt.getAsObject();
       var event = JSON.parse(row.note);
-      users[event.pubkey] = event;
       userPubkeys.push(event.pubkey)
     }
 
-    let h = pool.subscribeMany(
+    console.log("userPubkeys: " + userPubkeys);
+
+    let h = window.pool.subscribeMany(
       relays,[
         {kinds: [0], authors: userPubkeys}
       ],
@@ -309,20 +436,21 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (window.browserExtension) {
-            drawToasts(users, "url");
+            drawToasts(window.users, "url");
             document.querySelectorAll('#toastr nav a').forEach(l => {
               if (l.dataset.mode == "url") {
                 l.classList.add("active");
               }
             });
           } else {
-            drawToasts(users, "all");
+            drawToasts(window.users, "all");
             document.querySelectorAll('#toastr nav a').forEach(l => {
               if (l.dataset.mode == "all") {
                 l.classList.add("active");
               }
             });
           }
+          
           //h.close()
         }
       }
@@ -393,7 +521,6 @@ initSqlJs(config).then(function(SQL){
         var user = JSON.parse(users[event.pubkey].content);
         avatar_url = user.picture;
         username = user.name;
-        console.log('Using custom profile image: ' + avatar_url);
       }
       else {
         avatar_url = '201.png'
@@ -455,24 +582,32 @@ initSqlJs(config).then(function(SQL){
       closeButton.classList.remove('hidden');
     }
 
+    // Grab the profile picture URL from the settings box for the time being
+    var avatarURL;
+    if (document.querySelector('#profile input[name="picture"]').value !== "") {
+      avatarURL = document.querySelector('#profile input[name="picture"]').value
+    } else {
+      avatarURL = '201.png'
+    }
+    
+
     const div = document.createElement('div');
     div.classList.add('toast-new');
     div.classList.add('hidden');
 
     div.innerHTML = `
       <header>
-        <img class="avatar" src="133.png" />
-        <form action="" method="POST" class="toast-new-form" autocomplete="off">
+        <img class="avatar" src="${avatarURL}" />
+        <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="domain" value="" />
           <input type="hidden" name="url" value="${url}" />
-          <input type="hidden" name="username" value="Eevee" />
-          <input type="hidden" name="avatar_url" value="133.png" />
-
+  
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
-          <button type="submit" class="toast-submit" onsubmit="newToastSubmit()">Toast</button>
+          <button type="submit" class="toast-submit">Toast</button>
         </form>
       </header>
     `
+
     const closeButton = document.createElement('button');
     closeButton.innerHTML = `Cancel`
     closeButton.setAttribute('type', 'button');
@@ -493,37 +628,6 @@ initSqlJs(config).then(function(SQL){
     parentNode.appendChild(button);
     parentNode.appendChild(div);
     parentNode.appendChild(closeButton);
-  }
-
-  function newToastSubmit(event) {
-    event.preventDefault();
-    var data = this;
-
-    if (typeof window.nostr !== 'undefined') {
-      // NIP07 supported
-      window.nostr.signEvent({ created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value }).then(note => {
-        console.log("signed note via nip07: " + note);
-        uploadNote(data, note);
-      })
-    } else {
-    // NIP07 unsupported
-      var note = window.NostrTools.finalizeEvent({
-        kind: 1,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [['r', data.url.value], ['t', 'toastr']],
-        content: data.message.value,
-      }, sk)
-      console.log("signed note without nip07: " + note);
-      uploadNote(data, note);
-      }
-  }
-
-  function uploadNote(data, note) {
-    console.log("Sending " + JSON.stringify(note));
-    Promise.any(window.pool.publish(relays, note)).then(relay => {
-      toast('.toasts', {username: 'Unknown', pubkey: note.pubkey, message: note.content, avatar_url: 0, created_at: Date.now() / 1000})
-      data.reset();
-    });
   }
 
   document.querySelectorAll('#toastr nav a').forEach(link => {
