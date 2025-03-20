@@ -69,7 +69,7 @@ function displayRelays(relays) {
   document.querySelector('#settings .relays').innerHTML = div.innerHTML;  
 }
 
-function setProfile(pubKey) {
+function displayProfile(pubKey) {
   if (pubKey !== undefined) {
     window.pubKey = pubKey;
     document.querySelector('#profile input[name="pubkey"]').value = pubKey;
@@ -139,7 +139,7 @@ function updateProfile() {
       created_at: Math.floor(Date.now() / 1000),
       tags: [],
       content: JSON.stringify(content),
-    }, sk)
+    }, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
     console.log("signed event without nip07: " + event);
     uploadProfileEvent(event);
   }
@@ -170,7 +170,7 @@ function newToastSubmit(event) {
       created_at: Math.floor(Date.now() / 1000),
       tags: [['r', data.url.value], ['t', 'toastr']],
       content: data.message.value,
-    }, sk)
+    }, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
     console.log("signed note without nip07: " + note);
     uploadNote(data, note, data.parentElement.parentElement.parentElement);
   }
@@ -230,8 +230,6 @@ function toast(parent, data) {
 
 initSqlJs(config).then(function(SQL){
   function importToast(value, index, array) {
-    console.log(value);
-
     var note = JSON.stringify(value);
 
     var taggedUrl = '';
@@ -243,10 +241,7 @@ initSqlJs(config).then(function(SQL){
 
     const url = new URL(taggedUrl);
     var domain = url.hostname.toLowerCase();
-    
-    console.log('url: ' + taggedUrl);
-    console.log('domain: ' + domain);
-    
+        
     console.log('Inserting ' + value['id'] + ' into DB...');
     db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
   }
@@ -259,7 +254,7 @@ initSqlJs(config).then(function(SQL){
         console.log('Inserting ' + value['id'] + ' into DB...');
         window.users[value['pubkey']] = value;
         if (value['pubkey'] == window.pubKey) {
-          setProfile(window.pubKey);
+          displayProfile(window.pubKey);
         }
         db.run("INSERT INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
         console.log('Adding ' + value['pubkey'] + ' to window.users...');
@@ -267,7 +262,7 @@ initSqlJs(config).then(function(SQL){
         console.log('Updating ' + value['id'] + ' into DB...');
         window.users[value['pubkey']] = value;
         if (value['pubkey'] == window.pubKey) {
-          setProfile(window.pubKey);
+          displayProfile(window.pubKey);
         }
         db.run("UPDATE notes SET id = ? created_at = ?, kind = ?, note = ? WHERE pubkey = ? AND created_at < ?)", [value['id'], value['created_at'], value['kind'], note, value['pubkey'], value['created_at']]);
         console.log('Adding ' + value['pubkey'] + ' to window.users...');
@@ -325,17 +320,8 @@ initSqlJs(config).then(function(SQL){
 
 	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
   console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 1")[0].values[0][0]);
-  const stmt = db.prepare("SELECT * FROM toasts");
-
-  var rows = [];
-  // Bind new values
-  while(stmt.step()) {
-//    const row = stmt.getAsObject();
-//    rows.push(JSON.stringify(row));
-  }
 
   // Start Nostr connections
-
   var sk = localStorage.getItem('privkey');
   var pk;
 
@@ -344,7 +330,7 @@ initSqlJs(config).then(function(SQL){
     document.querySelector('#profile input[name="privkey"]').value = "NIP-07 supported - using browser keys";
     document.querySelector('#profile input[name="privkey"]').disabled = true;
     window.nostr.getPublicKey().then(pubKey => {
-      setProfile(pubKey);
+      displayProfile(pubKey);
       return pubKey;
     })
   } else if (sk === null) {
@@ -391,7 +377,7 @@ initSqlJs(config).then(function(SQL){
   document.querySelector('#profile input[name="privkey"]').disabled = true;
 
   if (pk) {
-    setProfile(pk);
+    displayProfile(pk);
   }
 
   let h = window.pool.subscribeMany(
@@ -448,9 +434,9 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (window.browserExtension) {
-            drawToasts(document.querySelector('.toasts-container'), window.users, "url");
+            drawToasts(document.querySelector('.toasts-container'), window.users, "url-#");
             document.querySelectorAll('#toastr nav a').forEach(l => {
-              if (l.dataset.mode == "url") {
+              if (l.dataset.mode == "url-#") {
                 l.classList.add("active");
               }
             });
@@ -499,24 +485,32 @@ initSqlJs(config).then(function(SQL){
     var oldHeading = '';
     var oldSubHeading = '';
 
-    if (mode == "site") {
-      console.log("Filtering to domain name " + domain);
-      emptyMsg = "Sorry, there are no toasts for the domain " + domain;
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
-      stmt.bind({$domain: domain});
+    if (mode.startsWith("domain-")) {
+      if (mode == "domain-#") {
+        console.log("Filtering to domain name " + domain);
+        emptyMsg = "Sorry, there are no toasts for the domain " + domain;
+        stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
+        stmt.bind({$domain: domain});
+      } else {
+        console.log("Filtering to domain name " + mode.substring(7));
+        emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
+        stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
+        stmt.bind({$domain: mode.substring(7)});
+      }
     } else if (mode == "recent") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
       emptyMsg = "Sorry, there are no toasts";
-    } else if (mode == "url") {
-      console.log("Filtering to URL " + currentURL);
-      emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
+    } else if (mode.startsWith("url-")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
-      stmt.bind({$url: currentURL});
-    } else if (mode == "site") {
-      console.log("Filtering to URL " + currentURL);
-      emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
-      stmt.bind({$url: currentURL});
+      if (mode == "url-#") {
+        console.log("Filtering to URL " + currentURL);
+        stmt.bind({$url: currentURL});
+        emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
+      } else {
+        console.log("Filtering to URL " + mode.substring(4));
+        stmt.bind({$url: mode.substring(4)});
+        emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4);
+      }
     }
 
     var count = 0;
@@ -543,14 +537,34 @@ initSqlJs(config).then(function(SQL){
 
       if (oldHeading != newHeading) {
         const heading = document.createElement('h2');
-        heading.innerHTML = `<a href="https://${newHeading}">${newHeading}:</a>`
+        const link = document.createElement('a');
+        link.onclick = function(event) {
+          event.preventDefault();
+          drawToasts(container, window.users, "domain-" + event.target.dataset.domain);
+        }
+        link.href = row.url;
+        link.dataset.domain = row.domain;
+        link.dataset.url = row.url;
+        link.innerHTML = newHeading;
+        heading.appendChild(link);
+
         container.querySelector('.toasts').appendChild(heading);
         oldHeading = newHeading;
       }
 
       if (oldSubHeading != newSubHeading) {
         const heading = document.createElement('h3');
-        heading.innerHTML = `<a href="https://${newSubHeading}">${newSubHeading}:</a>`
+        const link = document.createElement('a');
+        link.onclick = function(event) {
+          event.preventDefault();
+          drawToasts(container, window.users, "url-" + event.target.dataset.url);
+        }
+        link.href = row.url;
+        link.dataset.domain = row.domain;
+        link.dataset.url = row.url;
+        link.innerHTML = newSubHeading;
+        heading.appendChild(link);
+
         container.querySelector('.toasts').appendChild(heading);
         oldSubHeading = newSubHeading;
       }
@@ -563,8 +577,10 @@ initSqlJs(config).then(function(SQL){
       container.querySelector('.toasts').innerHTML = emptyMsg;
     } else {
       container.querySelector('.toasts-empty').classList.remove("active");
-      if (mode != "recent") {
+      if (mode != "recent" && !mode.startsWith("domain-")) {
         newToast(container, row.url);
+      } else {
+      container.querySelector('.toast-submit').classList.add("hidden");
       }
     }
     container.querySelector('.toasts-loading').classList.remove("active");
@@ -572,7 +588,9 @@ initSqlJs(config).then(function(SQL){
 
   function newToast(node, url) {
     if (node.querySelector('.toast-new') !== null) {
-      node.querySelector(input[name="url"]).value = url; // Update the URL of the newToast form
+      try {
+        node.querySelector(input[name="url"]).value = url; // Update the URL of the newToast form
+      } catch (e) {}
       return;
     }
     const button = document.createElement('button');
@@ -636,6 +654,12 @@ initSqlJs(config).then(function(SQL){
     node.append(button);
     node.append(div);
     node.append(closeButton);
+  }
+
+  function filterByDomain(event) {
+    event.preventDefault();
+    window.event = event;
+    alert(event.target.dataset.domain);
   }
 
   document.querySelectorAll('#toastr nav a').forEach(link => {
