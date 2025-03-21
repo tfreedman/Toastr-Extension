@@ -469,8 +469,7 @@ initSqlJs(config).then(function(SQL){
 
     // TODO: PASS IN URL
     if (!window.browserExtension) {
-      //currentURL = window.location.href;
-      currentURL = 'https://news.ycombinator.com/item?id=43425655'
+      currentURL = window.location.href;
     }
 
     console.log("CurrentURL: " + currentURL);
