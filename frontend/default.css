@@ -13,12 +13,14 @@ body {
     background: #cb0031;
 
     #logo {
-      fill: #FFF;
+      margin-top: 5px;
+      width: 55px;
+      fill: #6d032c;
     }
 
     hr {
       width: 60%;
-      opacity: 0.5;
+      opacity: 0.25;
     }
 
     nav {
