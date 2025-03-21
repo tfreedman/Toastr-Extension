@@ -110,11 +110,12 @@ function displayProfile(pubKey) {
 
 function updateProfile() {
   var content = {};
-  var name = document.querySelector('#profile input[name="name"]').value
-  var displayName = document.querySelector('#profile input[name="display_name"]').value
-  var website = document.querySelector('#profile input[name="website"]').value
-  var banner = document.querySelector('#profile input[name="banner"]').value
-  var picture = document.querySelector('#profile input[name="picture"]').value
+  var container = document.querySelector('#profile');
+  var name = container.querySelector('input[name="name"]').value;
+  var displayName = container.querySelector('input[name="display_name"]').value;
+  var website = container.querySelector('input[name="website"]').value;
+  var banner = container.querySelector('input[name="banner"]').value;
+  var picture = container.querySelector('input[name="picture"]').value;
 
   if (name.length > 0) {content.name = name}
   if (displayName.length > 0) {content.displayName = displayName}
@@ -551,6 +552,7 @@ initSqlJs(config).then(function(SQL){
 
         container.querySelector('.toasts').appendChild(heading);
         oldHeading = newHeading;
+        oldSubHeading = ''; // If the new domain changes, reset the subHeading
       }
 
       if (oldSubHeading != newSubHeading) {
