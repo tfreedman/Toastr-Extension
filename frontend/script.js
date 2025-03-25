@@ -57,8 +57,33 @@ function toBinString(arr) {
   return strings.join('');
 }
 
+function getRelays() {
+  var default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
+  var relays = [];
+  var override_relays = true;
+
+  if (override_relays) {
+    var relays = ["wss://toastr.tylerfreedman.com"]
+    document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
+  } else {
+    if (typeof window.nostr !== 'undefined') {
+      // Detected NIP-07 support
+      document.querySelector('#settings #relays .message').innerHTML = 'Retrieving relays via NIP-07';
+      window.nostr.getRelays().then(r => {
+        for (const [key, value] of Object.entries(r)) {
+          relays.push(key);
+        }
+        displayRelays(relays);
+      })
+    } else {
+      relays.concat(default_relays);
+    }
+  }
+  displayRelays(relays);
+  return relays;
+}
+
 function displayRelays(relays) {
-  window.relays = relays;
   const div = document.createElement('div');
   relays.forEach((relay) => {
     div.innerHTML += `
@@ -350,29 +375,10 @@ initSqlJs(config).then(function(SQL){
     pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
   });
 
-  var default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
-  var relays = [];
-  var override_relays = true;
-
-  if (override_relays) {
-    var relays = ["wss://toastr.tylerfreedman.com"]
-    document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
-  } else {
-    if (typeof window.nostr !== 'undefined') {
-      // Detected NIP-07 support
-      window.nostr.getRelays().then(r => {
-        for (const [key, value] of Object.entries(r)) {
-          relays.push(key);
-        }
-        displayRelays(relays);
-      })
-    } else {
-      relays.concat(default_relays);
-    }
-  }
-
   window.pool = new window.NostrTools.SimplePool()
-  displayRelays(relays);
+
+  window.relays = getRelays();
+  displayRelays(window.relays);
 
   var dirty = false;
 
