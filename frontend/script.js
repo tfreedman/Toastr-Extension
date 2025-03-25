@@ -583,7 +583,10 @@ initSqlJs(config).then(function(SQL){
         const link = document.createElement('a');
         link.onclick = function(event) {
           event.preventDefault();
-          drawToasts(container, window.users, "domain-" + event.target.dataset.domain);
+          searchBar.value = event.target.dataset.domain;
+          onInput(event.target.dataset.domain);
+          //drawToasts(container, window.users, "domain-" + event.target.dataset.domain);
+          
         }
         link.href = row.url;
         link.dataset.domain = row.domain;
@@ -601,7 +604,10 @@ initSqlJs(config).then(function(SQL){
         const link = document.createElement('a');
         link.onclick = function(event) {
           event.preventDefault();
-          drawToasts(container, window.users, "url-" + event.target.dataset.url);
+
+          searchBar.value = event.target.dataset.url;
+          onInput(event.target.dataset.url);
+          //drawToasts(container, window.users, "url-" + event.target.dataset.url);
         }
         link.href = row.url;
         link.dataset.domain = row.domain;
@@ -715,7 +721,7 @@ initSqlJs(config).then(function(SQL){
         l.classList.remove("active");
       });
       e.currentTarget.classList.add("active")
-      
+      searchBar.value = '';
       drawToasts(document.querySelector('.toasts-container'), null, e.currentTarget.dataset.mode);
       return false;
     });
