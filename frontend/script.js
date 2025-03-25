@@ -7,8 +7,8 @@ config = {
 }
 
 function setExtensionIcon(tab) {
-   const u = new URL(currentURL);
-   var domain = u.hostname.toLowerCase();
+  const u = new URL(currentURL);
+  var domain = u.hostname.toLowerCase();
 
   const stmt = window.db.prepare("SELECT * FROM toasts WHERE domain = $domain");
   stmt.bind({$domain: domain});
@@ -402,6 +402,39 @@ initSqlJs(config).then(function(SQL){
     }
   )
 
+  const searchBar = document.getElementById('search-bar');
+
+  const searchResults = (searchValue) => {
+    document.querySelectorAll('#toastr nav a').forEach(l => {
+      l.classList.remove("active");
+    });
+//      e.currentTarget.classList.add("active")
+    var mode = '';
+    if (!searchValue || searchValue == "") {
+      mode = 'recent';
+    } else if (searchValue.startsWith('https://') || searchValue.startsWith('http://')) {
+      mode = 'url-' + searchValue;
+    } else {
+      mode = 'domain-' + searchValue;
+    }
+
+    drawToasts(document.querySelector('.toasts-container'), window.users, mode);
+  };
+
+  const debounce = (fn, delay = 1000) => {
+    let timerId = null;
+    return (...args) => {
+      clearTimeout(timerId);
+      timerId = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  const onInput = debounce(searchResults, 500);
+
+  searchBar.addEventListener("input", (e) => {
+    onInput(e.target.value);
+  });
+
   function fetchAuthorInfo() {
     var userPubkeys = [];
     var dirty = false;
@@ -506,11 +539,11 @@ initSqlJs(config).then(function(SQL){
       if (mode == "url-#") {
         console.log("Filtering to URL " + currentURL);
         stmt.bind({$url: currentURL});
-        emptyMsg = "Sorry, there are no toasts for URL " + currentURL;
+        emptyMsg = "Sorry, there are no toasts for URL " + currentURL + " - why not be the first to write one?";
       } else {
         console.log("Filtering to URL " + mode.substring(4));
         stmt.bind({$url: mode.substring(4)});
-        emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4);
+        emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
       }
     }
 
