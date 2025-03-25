@@ -185,7 +185,7 @@ function uploadNote(data, note, parent) {
       username = user.name;
     }
     else {
-      avatar_url = '201.png'
+      avatar_url = 'Unknown'
       username = 'Unknown';
     }
     displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
@@ -206,8 +206,15 @@ function displayToast(parent, data) {
   var epoch_timestamp = new Date(0);
   epoch_timestamp.setUTCSeconds(data.created_at);
 
+  var imageClass = '';
+
+  if (data.avatar_url == 'Unknown') {
+    data.avatar_url = hashicon(data.pubkey).toDataURL();
+    imageClass = 'hashicon';
+  }
+
   div.innerHTML = `
-    <img class="avatar left" src="${data.avatar_url}" />
+    <div class="avatar left"><img src="${data.avatar_url}" class="${imageClass}"/></div>
     <div class="content">
       <header>
         <div class="details">
@@ -559,7 +566,7 @@ initSqlJs(config).then(function(SQL){
         username = user.name;
       }
       else {
-        avatar_url = '201.png'
+        avatar_url = 'Unknown'
         username = 'Unknown';
       }
       var newHeading = row.domain;
