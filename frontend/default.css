@@ -182,14 +182,23 @@ body {
           }
         }
   
-        img.avatar {
-          background: #F00;
-          width: 50px;
+        .avatar {
+          min-width: 50px;
+          object-fit: cover;
           border-radius: 50px;
+          overflow: hidden;
           height: 50px;
           margin-right: 10px;
+
+          img {
+            &.hashicon {transform: scale(1.25)}
+            width: 50px;
+            height: 50px;
+          }
+
+
         }
-  
+         
         .content {
           margin-left: auto;
           width: 100%;
