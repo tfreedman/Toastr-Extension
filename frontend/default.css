@@ -130,15 +130,10 @@ body {
         }
       }
 
-      .toast, .toast-new {
-        width: 500px;
-      }
-
-      .hidden {display: none}
+      .hidden {display: none !important}
 
       .toast-new {
         button {float: right}
-        margin-left: 100px;
       }
 
       .toasts-loading {
@@ -158,6 +153,8 @@ body {
       }
 
       .toast, .toast-new {
+        width: 500px;
+        display: flex;
         background: #fff;
         color: #160b39;
         border-radius: 10px;
@@ -185,38 +182,38 @@ body {
           }
         }
   
+        img.avatar {
+          background: #F00;
+          width: 50px;
+          border-radius: 50px;
+          height: 50px;
+          margin-right: 10px;
+        }
+  
+        .content {
+          margin-left: auto;
+          width: 100%;
+          order: 2;
+        }
+        
         header {
-          display: flex;
           margin-bottom: 10px;
-  
-          img.avatar {
-            background: #F00;
-            width: 50px;
-            border-radius: 50px;
-            height: 50px;
-            margin-right: 5px;
-          }
-  
-          .left {
-            max-width: 250px;
-            .username {
-              font-weight: bold;
-            }
-  
-            .pubkey {
-              font-weight: normal;
-              font-size: 10px;
-              word-wrap: break-word;
-              color: #aaa;
-            }
-          }
 
-          .right {
-            text-align: right;
-            width: 200px;
+          .details {
+            display: flex;
+
+            .username {font-weight: bold}
             .created_at {
               font-size: 10px;
+              margin-left: auto;
             }
+          }
+          .pubkey {
+            font-weight: normal;
+            font-style: italic;
+            font-size: 10px;
+            word-wrap: break-word;
+            color: #aaa;
           }
         }
 

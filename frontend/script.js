@@ -79,8 +79,6 @@ function displayProfile(pubKey) {
   
     document.querySelector('#profile button').addEventListener('click', updateProfile);
 
-    console.log(pubKey);
-
     console.log("Users length: " + Object.keys(window.users).length);
 
     if (window.users[pubKey] !== undefined) {
@@ -190,7 +188,7 @@ function uploadNote(data, note, parent) {
       avatar_url = '201.png'
       username = 'Unknown';
     }
-    toast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
 
     // Hide Cancel Button
     parent.querySelector('.toast-close').classList.add('hidden');
@@ -202,26 +200,24 @@ function uploadNote(data, note, parent) {
   });
 }
 
-function toast(parent, data) {
+function displayToast(parent, data) {
   const div = document.createElement('div');
   div.classList.add('toast');
   var epoch_timestamp = new Date(0);
   epoch_timestamp.setUTCSeconds(data.created_at);
 
   div.innerHTML = `
-    <header>
-      <img class="avatar" src="${data.avatar_url}" />
-      <div class="left">
-        <div class="username">${data.username}</div>
+    <img class="avatar left" src="${data.avatar_url}" />
+    <div class="content">
+      <header>
+        <div class="details">
+          <span class="username left">${data.username}</span>
+          <span class="created_at right"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
+        </div>
         <div class="pubkey">${data.pubkey}</div>
-      </div>
-
-      <div class="right">
-        <span class="created_at"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
-      </div>
-
-    </header>
-    <span class="caption">${data.message}</span>
+      </header>
+      <div class="caption">${data.message}</div>
+    </div>
   `
 
   parent.appendChild(div)
@@ -402,13 +398,13 @@ initSqlJs(config).then(function(SQL){
     }
   )
 
-  const searchBar = document.getElementById('search-bar');
+  // Search Code
 
+  const searchBar = document.getElementById('search-bar');
   const searchResults = (searchValue) => {
     document.querySelectorAll('#toastr nav a').forEach(l => {
       l.classList.remove("active");
     });
-//      e.currentTarget.classList.add("active")
     var mode = '';
     if (!searchValue || searchValue == "") {
       mode = 'recent';
@@ -430,10 +426,10 @@ initSqlJs(config).then(function(SQL){
   };
 
   const onInput = debounce(searchResults, 500);
-
   searchBar.addEventListener("input", (e) => {
     onInput(e.target.value);
   });
+
 
   function fetchAuthorInfo() {
     var userPubkeys = [];
@@ -603,7 +599,7 @@ initSqlJs(config).then(function(SQL){
         container.querySelector('.toasts').appendChild(heading);
         oldSubHeading = newSubHeading;
       }
-      toast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
       lastRow = row;
     }
 
@@ -659,9 +655,8 @@ initSqlJs(config).then(function(SQL){
     div.classList.add('hidden');
 
     div.innerHTML = `
-      <header>
-        <img class="avatar" src="${avatarURL}" />
-
+      <img class="avatar" src="${avatarURL}" />
+      <div class="content">
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="domain" value="" />
           <input type="hidden" name="url" value="${url}" />
@@ -669,7 +664,7 @@ initSqlJs(config).then(function(SQL){
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
           <button type="submit" class="toast-submit-button">Toast</button>
         </form>
-      </header>
+      </div>
     `
 
     const closeButton = document.createElement('button');
