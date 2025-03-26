@@ -328,15 +328,6 @@ initSqlJs(config).then(function(SQL){
         setExtensionIcon(tab, change.url);
       }
     });
-
-    browser.tabs.query({
-      active: true,
-      currentWindow: true
-    }, function(tabs) {
-      var tabURL = tabs[0].url;
-      console.log("TabURL is " + tabURL);
-      //currentURL = tabURL;
-    });
   } else {
     // Not a browser extension
     window.browserExtension = false;
@@ -472,7 +463,14 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (window.browserExtension) {
-            drawToasts(document.querySelector('.toasts-container'), window.users, "url-#");
+            browser.tabs.query({
+              active: true,
+              currentWindow: true
+            }, function(tabs) {
+              searchBar.value = tabs[0].url;
+              onInput(searchBar.value);
+            });
+
             document.querySelectorAll('#toastr nav a').forEach(l => {
               if (l.dataset.mode == "url-#") {
                 l.classList.add("active");
@@ -486,7 +484,6 @@ initSqlJs(config).then(function(SQL){
               }
             });
           }
-          
           //h.close()
         }
       }
@@ -558,8 +555,6 @@ initSqlJs(config).then(function(SQL){
           event.preventDefault();
           searchBar.value = event.target.dataset.domain;
           onInput(event.target.dataset.domain);
-          //drawToasts(container, window.users, "domain-" + event.target.dataset.domain);
-          
         }
         link.href = row.url;
         link.dataset.domain = row.domain;
@@ -580,7 +575,6 @@ initSqlJs(config).then(function(SQL){
 
           searchBar.value = event.target.dataset.url;
           onInput(event.target.dataset.url);
-          //drawToasts(container, window.users, "url-" + event.target.dataset.url);
         }
         link.href = row.url;
         link.dataset.domain = row.domain;
@@ -695,7 +689,7 @@ initSqlJs(config).then(function(SQL){
       });
       e.currentTarget.classList.add("active")
       searchBar.value = '';
-      drawToasts(document.querySelector('.toasts-container'), null, e.currentTarget.dataset.mode);
+      drawToasts(document.querySelector('.toasts-container'), window.users, e.currentTarget.dataset.mode);
       return false;
     });
   });
