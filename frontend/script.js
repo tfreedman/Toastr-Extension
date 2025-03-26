@@ -606,9 +606,10 @@ initSqlJs(config).then(function(SQL){
     if (mode.startsWith('url-')) {
       newToast(container, mode.substring(4));
     } else {
-      // Hide New Toast Button
+      // Hide New Toast Button and Form
       try {
         container.querySelector('.toast-new-button').classList.add("hidden");
+        container.querySelector('.toast-new').classList.add("hidden");
       } catch (e) {}
     }
   }
