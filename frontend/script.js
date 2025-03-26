@@ -424,12 +424,20 @@ initSqlJs(config).then(function(SQL){
     var mode = '';
     if (!searchValue || searchValue == "") {
       mode = 'recent';
+      document.querySelectorAll('#toastr nav a').forEach(l => {
+        if (l.dataset.mode == "recent") {
+          l.classList.add("active");
+        }
+      });
+
     } else if (searchValue.startsWith('https://') || searchValue.startsWith('http://')) {
       mode = 'url-' + searchValue;
     } else {
       mode = 'domain-' + searchValue;
     }
 
+    const searchHeading = document.querySelector('.search-results');
+    searchHeading.classList.add('active');
     drawToasts(document.querySelector('.toasts-container'), window.users, mode);
   };
 
