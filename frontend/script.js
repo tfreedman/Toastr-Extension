@@ -328,6 +328,14 @@ initSqlJs(config).then(function(SQL){
         setExtensionIcon(tab, change.url);
       }
     });
+
+    browser.tabs.query({
+      active: true,
+      currentWindow: true
+    }, function(tabs) {
+      searchBar.value = tabs[0].url;
+      onInput(searchBar.value);
+    });
   } else {
     // Not a browser extension
     window.browserExtension = false;
@@ -366,10 +374,8 @@ initSqlJs(config).then(function(SQL){
   window.pool = new window.NostrTools.SimplePool()
 
   window.relays = getRelays();
-  displayRelays(window.relays);
 
   var dirty = false;
-
   document.querySelector('#profile input[name="privkey"]').disabled = true;
 
   if (pk) {
@@ -463,14 +469,6 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (window.browserExtension) {
-            browser.tabs.query({
-              active: true,
-              currentWindow: true
-            }, function(tabs) {
-              searchBar.value = tabs[0].url;
-              onInput(searchBar.value);
-            });
-
             document.querySelectorAll('#toastr nav a').forEach(l => {
               if (l.dataset.mode == "url-#") {
                 l.classList.add("active");
