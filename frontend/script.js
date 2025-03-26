@@ -175,6 +175,16 @@ function uploadProfileEvent(note) {
   });
 }
 
+function newToastClose(event) {
+  let button = event.target.parentElement.parentElement.parentElement.previousElementSibling;
+  button.classList.remove('hidden');
+
+  let div = event.target.parentElement.parentElement.parentElement;
+  div.classList.add('hidden');
+
+  this.classList.add('hidden');
+}
+
 function newToastSubmit(event) {
   event.preventDefault();
   var data = event.target;
@@ -199,6 +209,7 @@ function newToastSubmit(event) {
 }
 
 function uploadNote(data, note, parent) {
+  window.parent = parent;
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
     var avatar_url = '';
@@ -214,8 +225,6 @@ function uploadNote(data, note, parent) {
     }
     displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
 
-    // Hide Cancel Button
-    parent.querySelector('.toast-close').classList.add('hidden');
     // Hide Message Box
     parent.querySelector('.toast-new').classList.add('hidden');
     // Show New Toast
@@ -621,9 +630,6 @@ initSqlJs(config).then(function(SQL){
       div.classList.remove('hidden');
 
       this.classList.add('hidden');
-
-      let closeButton = this.nextElementSibling.nextElementSibling;
-      closeButton.classList.remove('hidden');
     }
 
     // Grab the profile picture URL from the settings box for the time being
@@ -647,36 +653,13 @@ initSqlJs(config).then(function(SQL){
   
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
           <button type="submit" class="toast-submit-button">Toast</button>
+          <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
         </form>
       </div>
     `
 
-    const closeButton = document.createElement('button');
-    closeButton.innerHTML = `Cancel`
-    closeButton.setAttribute('type', 'button');
-
-    closeButton.classList.add("toast-close");
-    closeButton.classList.add("hidden");
-    closeButton.onclick = function() {
-      let button = this.previousElementSibling.previousElementSibling;
-      button.classList.remove('hidden');
-
-      let div = this.previousElementSibling;
-      div.classList.add('hidden');
-
-      this.classList.add('hidden');
-
-    }
-
     node.append(button);
     node.append(div);
-    node.append(closeButton);
-  }
-
-  function filterByDomain(event) {
-    event.preventDefault();
-    window.event = event;
-    alert(event.target.dataset.domain);
   }
 
   document.querySelectorAll('#toastr nav a').forEach(link => {
