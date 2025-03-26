@@ -1,32 +1,73 @@
+html {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: inherit;
+  &:before,
+  &:after {
+    box-sizing: inherit;
+  }
+}
+
 body {
   margin: 0;
-  min-width: 600px;
-  min-height: 500px;
-  background: #f8f8f8;
+  min-width: 100%;
+  min-height: 100%;
+  background-size: cover;
   font-family: 'Inter';
   font-size: 14px;
-
-  #sidebar {
-    width: 60px;
+  
+  #gradient {
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-position: fixed;
+    background-size: cover;
+    width: 100%;
     height: 100%;
     position: fixed;
-    background: #cb0031;
+    opacity: 0.3;
+    z-index: -1;
+  }
+
+  #scribbles {
+    background: url('scribbles.svg') no-repeat center center fixed;
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    opacity: 0.3;
+    z-index: -1;
+  }
+
+  #topbar {
+    height: 60px;
+    width: 100%;
+    position: absolute;
+    background: rgba(2, 0, 74, 0.5);
+    z-index: -1;
+  }
+
+  #sidebar {
+    height: 100%;
+    width: 60px;
+    position: fixed;
+    background: rgba(2, 0, 74, 0.5);    
 
     #logo {
-      margin-top: 5px;
       width: 55px;
-      fill: #6d032c;
+      fill: #FFF;
     }
 
     hr {
       width: 60%;
+      height: 1px;
       opacity: 0.25;
     }
 
     nav {
       text-align: center;
       a {
-        display: block;
         width: 60px;
         height: 60px;
   
@@ -38,24 +79,44 @@ body {
         &.active {opacity: 0.9}
         opacity: 0.4;
         #bread, #gear, #info {
-          fill: #FFF
+          fill: #FFF;
         }
       }
     }
   }
 
   #container {
-    width: 700px;
-    margin-right: 20px;
-    margin-left: 80px;
-    margin-bottom: 80px;
-    padding-top: 20px;
+    width: 100%;
+    padding: 10px 0 80px 90px;
     overflow: hidden;
     font-family: 'Inter';
 
+
+    #settings, #about {max-width: 700px}
+
     h1 {
+      text-transform: lowercase;
       font-size: 30px;
       margin-top: 0;
+      font-family: 'Toronto Subway';
+      color: #FFF;
+    }
+
+    h2 {
+      a {color: #000; text-decoration: none}
+      margin: 10px 0;
+      font-size: 24px;
+      display: inline-block;
+      font-family: 'Toronto Subway';
+    }
+
+    h3 {
+      font-family: 'Toronto Subway';
+      display: inline-block;
+      font-size: 24px;
+      margin: 10px 0;
+      padding: 0;
+      a {color: #666; text-decoration: none}
     }
 
     & > article:not(:first-child) {
@@ -67,6 +128,7 @@ body {
       border: none;
       color: #fff;
       padding: 10px;
+      margin-left: 10px;
       background: #cb0031;
       border-radius: 5px;
       &:hover {
@@ -76,13 +138,59 @@ body {
 
     #settings {
       #profile {
-        label {
-          width: 100px;
-          text-align: right;
-          padding-right: 5px;
-          padding-bottom: 5px;
-          margin: 3px 0;
-          display: inline-block;
+        width: 300px;
+        display: flex;
+        background: #fff;
+        color: #160b39;
+        border-radius: 10px;
+        padding: 10px;
+        margin: 10px;
+ 
+        form {
+          width: 100%;
+
+          button {float: right}
+
+          .field {
+            display: flex;
+            flex-direction: column;
+            width: fit-content;
+            position: static;
+            width: 100%;
+          }
+
+          .field label {
+            font-size: 0.75rem;
+            color: #818CF8;
+            font-weight: 700;
+            position: relative;
+            top: 0.5rem;
+            margin: 0 0 0 7px;
+            padding: 0 3px;
+            background: #fff;
+            width: fit-content;
+          }
+
+          .field input[type=text].input {
+            padding: 11px 10px;
+            font-size: 0.75rem;
+            border: 2px #818CF8 solid;
+            border-radius: 5px;
+            background: #fff;
+          }
+
+          .field input[type=text].input:focus {
+            outline: none;
+          }
+
+          label {
+            width: 100px;
+            text-align: right;
+            padding-right: 5px;
+            padding-bottom: 5px;
+            margin: 3px 0;
+            display: inline-block;
+          }
         }
       }
 
@@ -94,14 +202,17 @@ body {
     #toastr {
       nav {
         padding-bottom: 30px;
+        font-family: 'Toronto Subway';
+
         a {
+          text-transform: lowercase;
           &.search-results {opacity: 0}
+          color: #FFF;
+          font-size: 30px;
           display: inline-block;
-          margin: 0 20px 0 0;
-          font-size: 20px;
-          font-weight: bold;
-          opacity: 0.5;
-          &.active {opacity: 1}
+          text-decoration: none;
+          margin: 0 50px 0 0;
+          &.active {opacity: 1; color: #ff1451}
         }
 
         .search svg {
@@ -113,21 +224,24 @@ body {
           height: 32px;
           border-radius: 3px;
           border: 1px solid #eaeaea;
-          padding: 5px 10px;
+          padding: 5px 30px 5px 10px;
           font-size: 12px;
         }
 
         #search-wrapper {
+          top: 3px;
+          right: 10px;
           position: relative;
-          width: 250px;
+          width: 350px;
           display: inline-block;
+          float: right;
         }
 
         #search-wrapper::after {
           content: '🔍';
           position: absolute;
-          top: 13px;
-          right: -10px;
+          top: 7px;
+          right: 10px;
         }
       }
 
@@ -170,7 +284,7 @@ body {
           textarea {
             font-size: 14px;
             resize: vertical;
-            width: calc(100% - 20px);
+            width: 100%;
             height: auto;
             overflow: hidden;
             font-family: 'Inter';
