@@ -1,4 +1,3 @@
-var currentURL = "";
 var users = {};
 var pubKey;
 
@@ -6,7 +5,7 @@ config = {
   locateFile: filename => `${filename}`
 }
 
-function setExtensionIcon(tab) {
+function setExtensionIcon(tab, currentURL) {
   const u = new URL(currentURL);
   var domain = u.hostname.toLowerCase();
 
@@ -320,15 +319,13 @@ initSqlJs(config).then(function(SQL){
 
     browser.tabs.onActivated.addListener( function(activeInfo){
       browser.tabs.get(activeInfo.tabId, function(tab){
-        currentURL = tab.url;
-        setExtensionIcon(tab);
+        setExtensionIcon(tab, tab.url);
       });
     });
 
     browser.tabs.onUpdated.addListener((tabId, change, tab) => {
       if (tab.active && change.url) {
-        currentURL = change.url;
-        setExtensionIcon(tab);
+        setExtensionIcon(tab, change.url);
       }
     });
 
@@ -338,7 +335,7 @@ initSqlJs(config).then(function(SQL){
     }, function(tabs) {
       var tabURL = tabs[0].url;
       console.log("TabURL is " + tabURL);
-      currentURL = tabURL;
+      //currentURL = tabURL;
     });
   } else {
     // Not a browser extension
@@ -509,51 +506,27 @@ initSqlJs(config).then(function(SQL){
       users[event.pubkey] = event;
     }
 
-    // TODO: PASS IN URL
-    if (!window.browserExtension) {
-      currentURL = window.location.href;
+    if (mode.slice(-1) == '#') {
+      mode = mode.substring(0, mode.length - 1);
     }
-
-    console.log("CurrentURL: " + currentURL);
-
-    if (currentURL.slice(-1) == '#') {
-      currentURL = currentURL.substring(0, currentURL.length - 1);
-    }
-
-    const url = new URL(currentURL);
-    var domain = url.hostname.toLowerCase();
-    // END TODO
 
     var emptyMsg = '';
     var oldHeading = '';
     var oldSubHeading = '';
 
     if (mode.startsWith("domain-")) {
-      if (mode == "domain-#") {
-        console.log("Filtering to domain name " + domain);
-        emptyMsg = "Sorry, there are no toasts for the domain " + domain;
-        stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
-        stmt.bind({$domain: domain});
-      } else {
-        console.log("Filtering to domain name " + mode.substring(7));
-        emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
-        stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
-        stmt.bind({$domain: mode.substring(7)});
-      }
+      console.log("Filtering to domain name " + mode.substring(7));
+      emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
+      stmt.bind({$domain: mode.substring(7)});
     } else if (mode == "recent") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
       emptyMsg = "Sorry, there are no toasts";
     } else if (mode.startsWith("url-")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
-      if (mode == "url-#") {
-        console.log("Filtering to URL " + currentURL);
-        stmt.bind({$url: currentURL});
-        emptyMsg = "Sorry, there are no toasts for URL " + currentURL + " - why not be the first to write one?";
-      } else {
-        console.log("Filtering to URL " + mode.substring(4));
-        stmt.bind({$url: mode.substring(4)});
-        emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
-      }
+      console.log("Filtering to URL " + mode.substring(4));
+      stmt.bind({$url: mode.substring(4)});
+      emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
     }
 
     var count = 0;
@@ -630,7 +603,7 @@ initSqlJs(config).then(function(SQL){
       container.querySelector('.toasts-empty').classList.remove("active");
     }
     if (mode.startsWith('url-')) {
-      newToast(container, currentURL);
+      newToast(container, mode.substring(4));
     } else {
       // Hide New Toast Button
       try {
