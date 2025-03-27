@@ -421,7 +421,7 @@ initSqlJs(config).then(function(SQL){
       l.classList.remove("active");
     });
     var mode = '';
-    if (!searchValue || searchValue == "") {
+    if (!searchValue || searchValue == "" || searchValue == "https://" || searchValue == "http://") {
       mode = 'recent';
       document.querySelectorAll('#toastr nav a').forEach(l => {
         if (l.dataset.mode == "recent") {
@@ -429,7 +429,7 @@ initSqlJs(config).then(function(SQL){
         }
       });
 
-    } else if (searchValue.startsWith('https://') || searchValue.startsWith('http://')) {
+    } else if ((searchValue.startsWith('https://') || searchValue.startsWith('http://')) && (searchValue.split("/").length - 1) > 2) {
       mode = 'url-' + searchValue;
     } else {
       mode = 'domain-' + searchValue;
