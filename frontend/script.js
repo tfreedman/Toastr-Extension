@@ -86,7 +86,10 @@ function displayRelays(relays) {
   const div = document.createElement('div');
   relays.forEach((relay) => {
     div.innerHTML += `
-      <input class="relay" name="relay[]" disabled value="${relay}" /><br />
+      <div class="field">
+        <label for="relay[]">Relay</label>
+        <input class="input relay" name="relay[]" disabled value="${relay}" type="text" />
+      </div>
     `
   });
 
@@ -96,14 +99,13 @@ function displayRelays(relays) {
 function displayProfile(pubKey) {
   if (pubKey !== undefined) {
     window.pubKey = pubKey;
-    document.querySelector('#profile input[name="pubkey"]').value = pubKey;
-    document.querySelector('#profile input[name="pubkey"]').disabled = true;
-    document.querySelector('#profile input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
-    document.querySelector('#profile input[name="npub"]').disabled = true;
+    document.querySelector('#keys input[name="pubkey"]').value = pubKey;
+    document.querySelector('#keys input[name="pubkey"]').disabled = true;
+    document.querySelector('#keys input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
+    document.querySelector('#keys input[name="npub"]').disabled = true;
   
+    document.querySelector('#keys button').addEventListener('click', updateProfile);
     document.querySelector('#profile button').addEventListener('click', updateProfile);
-
-    console.log("Users length: " + Object.keys(window.users).length);
 
     if (window.users[pubKey] !== undefined) {
       console.log("There's profile data!");
@@ -181,8 +183,6 @@ function newToastClose(event) {
 
   let div = event.target.parentElement.parentElement.parentElement;
   div.classList.add('hidden');
-
-  this.classList.add('hidden');
 }
 
 function newToastSubmit(event) {
@@ -212,18 +212,17 @@ function uploadNote(data, note, parent) {
   window.parent = parent;
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
-    var avatar_url = '';
+    var avatarURL = null;
     var username = '';
     if (window.users[note.pubkey]) {
       var user = JSON.parse(users[note.pubkey].content);
-      avatar_url = user.picture;
+      avatarURL = user.picture;
       username = user.name;
     }
     else {
-      avatar_url = 'Unknown'
       username = 'Unknown';
     }
-    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatar_url: avatar_url, created_at: Date.now() / 1000})
+    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatarURL: avatarURL, created_at: Date.now() / 1000})
 
     // Hide Message Box
     parent.querySelector('.toast-new').classList.add('hidden');
@@ -241,13 +240,13 @@ function displayToast(parent, data) {
 
   var imageClass = '';
 
-  if (data.avatar_url == 'Unknown') {
-    data.avatar_url = hashicon(data.pubkey).toDataURL();
+  if (data.avatarURL === null) {
+    data.avatarURL = hashicon(data.pubkey).toDataURL();
     imageClass = 'hashicon';
   }
 
   div.innerHTML = `
-    <div class="avatar left"><img src="${data.avatar_url}" class="${imageClass}"/></div>
+    <div class="avatar left"><img src="${data.avatarURL}" class="${imageClass}"/></div>
     <div class="content">
       <header>
         <div class="details">
@@ -359,24 +358,24 @@ initSqlJs(config).then(function(SQL){
 
   if (typeof window.nostr !== 'undefined') {
     // Detected NIP-07 support
-    document.querySelector('#profile input[name="privkey"]').value = "NIP-07 supported - using browser keys";
-    document.querySelector('#profile input[name="privkey"]').disabled = true;
+    document.querySelector('#keys input[name="privkey"]').value = "NIP-07 supported - using browser keys";
+    document.querySelector('#keys input[name="privkey"]').disabled = true;
     window.nostr.getPublicKey().then(pubKey => {
       displayProfile(pubKey);
       return pubKey;
     })
   } else if (sk === null) {
-    document.querySelector('#profile input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
-    localStorage.setItem("privkey", document.querySelector('#profile input[name="privkey"]').value);
+    document.querySelector('#keys input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
+    localStorage.setItem("privkey", document.querySelector('#keys input[name="privkey"]').value);
     sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
     pk = window.NostrTools.getPublicKey(sk);
   } else {
     sk = Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data);
-    document.querySelector('#profile input[name="privkey"]').value = localStorage.getItem('privkey');
+    document.querySelector('#keys input[name="privkey"]').value = localStorage.getItem('privkey');
     pk = window.NostrTools.getPublicKey(sk);
   }
 
-  document.querySelector('#profile input[name="privkey"]').addEventListener("change", function() {
+  document.querySelector('#keys input[name="privkey"]').addEventListener("change", function() {
     pk = window.NostrTools.getPublicKey(sk) // `pk` is a hex string
   });
 
@@ -385,7 +384,7 @@ initSqlJs(config).then(function(SQL){
   window.relays = getRelays();
 
   var dirty = false;
-  document.querySelector('#profile input[name="privkey"]').disabled = true;
+  document.querySelector('#keys input[name="privkey"]').disabled = true;
 
   if (pk) {
     displayProfile(pk);
@@ -550,14 +549,13 @@ initSqlJs(config).then(function(SQL){
       var event = JSON.parse(row.note);
       count += 1;
       var username = '';
-      var avatar_url = '';
+      var avatarURL = null;
       if (users[event.pubkey]) {
         var user = JSON.parse(users[event.pubkey].content);
-        avatar_url = user.picture;
+        avatarURL = user.picture;
         username = user.name;
       }
       else {
-        avatar_url = 'Unknown'
         username = 'Unknown';
       }
       var newHeading = row.domain;
@@ -600,7 +598,7 @@ initSqlJs(config).then(function(SQL){
         container.querySelector('.toasts').appendChild(heading);
         oldSubHeading = newSubHeading;
       }
-      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatar_url: avatar_url, created_at: event.created_at})
+      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at})
       lastRow = row;
     }
 
@@ -646,7 +644,7 @@ initSqlJs(config).then(function(SQL){
     if (document.querySelector('#profile input[name="picture"]').value !== "") {
       avatarURL = document.querySelector('#profile input[name="picture"]').value
     } else {
-      avatarURL = '201.png'
+      avatarURL = 'circle-user.svg'
     }
     
     const div = document.createElement('div');
@@ -673,6 +671,9 @@ initSqlJs(config).then(function(SQL){
 
   document.querySelectorAll('#toastr nav a').forEach(link => {
     link.addEventListener("click", (e) => {
+      if (e.currentTarget.dataset.mode == "search") {
+        return false;
+      }
       var num = Array.from(document.querySelectorAll("#toastr nav a")).indexOf(e.currentTarget);
       document.querySelectorAll('#toastr nav a').forEach(l => {
         l.classList.remove("active");
