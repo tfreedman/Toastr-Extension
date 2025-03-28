@@ -528,13 +528,13 @@ initSqlJs(config).then(function(SQL){
     if (mode.startsWith("domain-")) {
       console.log("Filtering to domain name " + mode.substring(7));
       emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain ORDER BY created_at ASC");
       stmt.bind({$domain: mode.substring(7)});
     } else if (mode == "recent") {
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 ORDER BY created_at DESC");
       emptyMsg = "Sorry, there are no toasts";
     } else if (mode.startsWith("url-")) {
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url ORDER BY created_at ASC");
       console.log("Filtering to URL " + mode.substring(4));
       stmt.bind({$url: mode.substring(4)});
       emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
