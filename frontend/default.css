@@ -257,6 +257,8 @@ body {
 
       .toast-new button {float: right}
 
+      .children {margin-left: 20px; border-left: 5px solid #FFF}
+
       .toasts-loading {
         &.active {display: visible;}
         display: none;

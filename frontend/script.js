@@ -255,7 +255,7 @@ function displayToast(parent, data) {
         </div>
         <div class="pubkey">${data.pubkey}</div>
       </header>
-      <div class="caption">${data.message}</div>
+      <div class="caption">${data.message.replace(/\n/g, '<br />')}</div>
     </div>
   `
 
@@ -392,7 +392,7 @@ initSqlJs(config).then(function(SQL){
 
   let h = window.pool.subscribeMany(
     relays,[
-      {kinds: [1], '#t': "toastr"}
+      {kinds: [1], '#t': ["toastr"]}
     ],
     {
       onevent(event) {
@@ -506,8 +506,10 @@ initSqlJs(config).then(function(SQL){
 
   function drawToasts(container, knownUsers, mode) {
     console.log("Drawing Toasts! - Mode = " + mode);
-    container.querySelector('.toasts-loading').classList.add("active");
-    container.querySelector('.toasts').innerHTML = '';
+    try {
+      container.querySelector('.toasts-loading').classList.add("active");
+      container.querySelector('.toasts').innerHTML = '';
+    } catch (e) {}
 
     var users = {}
     var stmt = db.prepare("SELECT * FROM notes WHERE kind = 0");
@@ -538,14 +540,56 @@ initSqlJs(config).then(function(SQL){
       console.log("Filtering to URL " + mode.substring(4));
       stmt.bind({$url: mode.substring(4)});
       emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
+    } else if (mode.startsWith("replies-")) {
+      console.log('Loading replies for ' + mode.substring(8));
+      var dirty = false;
+      var replies = [];
+/*
+      let h = window.pool.subscribeMany(
+        relays,[
+          {kinds: [1], '#e': [mode.substring(8)]}
+        ],
+        {
+          onevent(event) {
+            if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
+              replies.push(event);
+              dirty = true;
+            }
+          },
+          oneose() {
+            if (dirty) {
+              
+            }
+//            console.log('EOSE on toasts - Calling fetchAuthorInfo...')
+//            fetchAuthorInfo();
+            //h.close()
+          }
+        }
+      )
+
+      emptyMsg = "";*/
     }
 
     var count = 0;
     var row;
     var lastRow;
 
-    while(stmt.step()) {
-      row = stmt.getAsObject();
+    var drawHeadings = false;
+    while(true) {
+      if (!mode.startsWith("replies-")) { // Toasts
+        if (stmt.step()) {
+          row = stmt.getAsObject();
+          drawHeadings = true;
+        } else {
+          break;
+        }
+      } else { // Replies
+        if (replies.length == 0) {
+          break;
+        }
+        row = replies[count];
+      }
+      console.log('iteration: ' + count);
       var event = JSON.parse(row.note);
       count += 1;
       var username = '';
@@ -558,66 +602,88 @@ initSqlJs(config).then(function(SQL){
       else {
         username = 'Unknown';
       }
-      var newHeading = row.domain;
-      var newSubHeading = row.url.split(row.domain, 2)[1];
+      if (drawHeadings) {
+        var newHeading = row.domain;
+        var newSubHeading = row.url.split(row.domain, 2)[1];
 
-      if (oldHeading != newHeading) {
-        const heading = document.createElement('h2');
-        const link = document.createElement('a');
-        link.onclick = function(event) {
-          event.preventDefault();
-          searchBar.value = event.target.dataset.domain;
-          onInput(event.target.dataset.domain);
+        if (oldHeading != newHeading) {
+          const heading = document.createElement('h2');
+          const link = document.createElement('a');
+          link.onclick = function(event) {
+            event.preventDefault();
+            searchBar.value = event.target.dataset.domain;
+            onInput(event.target.dataset.domain);
+          }
+          link.href = row.url;
+          link.dataset.domain = row.domain;
+          link.dataset.url = row.url;
+          link.innerHTML = newHeading;
+          heading.appendChild(link);
+
+          container.querySelector('.toasts').appendChild(heading);
+          oldHeading = newHeading;
+          oldSubHeading = ''; // If the new domain changes, reset the subHeading
         }
-        link.href = row.url;
-        link.dataset.domain = row.domain;
-        link.dataset.url = row.url;
-        link.innerHTML = newHeading;
-        heading.appendChild(link);
 
-        container.querySelector('.toasts').appendChild(heading);
-        oldHeading = newHeading;
-        oldSubHeading = ''; // If the new domain changes, reset the subHeading
-      }
+        if (oldSubHeading != newSubHeading) {
+          const heading = document.createElement('h3');
+          const link = document.createElement('a');
+          link.onclick = function(event) {
+            event.preventDefault();
 
-      if (oldSubHeading != newSubHeading) {
-        const heading = document.createElement('h3');
-        const link = document.createElement('a');
-        link.onclick = function(event) {
-          event.preventDefault();
+            searchBar.value = event.target.dataset.url;
+            onInput(event.target.dataset.url);
+          }
+          link.href = row.url;
+          link.dataset.domain = row.domain;
+          link.dataset.url = row.url;
+          link.innerHTML = newSubHeading;
+          heading.appendChild(link);
 
-          searchBar.value = event.target.dataset.url;
-          onInput(event.target.dataset.url);
+          container.querySelector('.toasts').appendChild(heading);
+          oldSubHeading = newSubHeading;
         }
-        link.href = row.url;
-        link.dataset.domain = row.domain;
-        link.dataset.url = row.url;
-        link.innerHTML = newSubHeading;
-        heading.appendChild(link);
-
-        container.querySelector('.toasts').appendChild(heading);
-        oldSubHeading = newSubHeading;
       }
+  
+      console.log('Displaying toast!');
       displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at})
+
+      if (count > 0) {
+        // Hack: Generate all comments twice while working on child comment rendering
+        const children = document.createElement('div');
+        children.classList.add('children');
+
+
+        container.querySelector('.toasts').appendChild(children);
+
+        const toasts = document.createElement('div');
+        toasts.classList.add('toasts');
+        children.appendChild(toasts);
+
+        drawToasts(children, knownUsers, "replies-" + event.id);
+        // displayToast(children, {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at})
+        // End Hack
+      }
       lastRow = row;
     }
-
-    container.querySelector('.toasts-loading').classList.remove("active");
-    if (count == 0) {
-      container.querySelector('.toasts-empty').classList.add("active");
-      container.querySelector('.toasts').innerHTML = emptyMsg;
-    } else {
-      container.querySelector('.toasts-empty').classList.remove("active");
-    }
-    if (mode.startsWith('url-')) {
-      newToast(container, mode.substring(4));
-    } else {
-      // Hide New Toast Button and Form
-      try {
-        container.querySelector('.toast-new-button').classList.add("hidden");
-        container.querySelector('.toast-new').classList.add("hidden");
-      } catch (e) {}
-    }
+    try {
+      container.querySelector('.toasts-loading').classList.remove("active");
+      if (count == 0) {
+        container.querySelector('.toasts-empty').classList.add("active");
+        container.querySelector('.toasts').innerHTML = emptyMsg;
+      } else {
+        container.querySelector('.toasts-empty').classList.remove("active");
+      }
+      if (mode.startsWith('url-')) {
+        newToast(container, mode.substring(4));
+      } else {
+        // Hide New Toast Button and Form
+        try {
+          container.querySelector('.toast-new-button').classList.add("hidden");
+          container.querySelector('.toast-new').classList.add("hidden");
+        } catch (e) {}
+      }
+    } catch (e) {}
   }
 
   function newToast(node, url) {
