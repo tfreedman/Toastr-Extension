@@ -347,6 +347,15 @@ body {
             font-size: 10px;
             word-wrap: break-word;
             color: #aaa;
+
+            .raw img {
+              width: 10px;
+              height: 10px;
+              position: relative;
+              top: 2px;
+              margin-right: 5px;
+              opacity: 0.5;
+            }
           }
         }
 

@@ -62,7 +62,7 @@ function getRelays() {
   var override_relays = true;
 
   if (override_relays) {
-    var relays = ["wss://toastr.tylerfreedman.com"]
+    var relays = ["wss://toastr.tylerfreedman.com"];
     document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
   } else {
     if (typeof window.nostr !== 'undefined') {
@@ -222,7 +222,7 @@ function uploadNote(data, note, parent) {
     else {
       username = 'Unknown';
     }
-    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatarURL: avatarURL, created_at: Date.now() / 1000})
+    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatarURL: avatarURL, created_at: Date.now() / 1000}, note)
 
     // Hide Message Box
     parent.querySelector('.toast-new').classList.add('hidden');
@@ -232,7 +232,7 @@ function uploadNote(data, note, parent) {
   });
 }
 
-function displayToast(parent, data) {
+function displayToast(parent, data, note) {
   const div = document.createElement('div');
   div.classList.add('toast');
   var epoch_timestamp = new Date(0);
@@ -258,8 +258,30 @@ function displayToast(parent, data) {
       <div class="caption">${data.message.replace(/\n/g, '<br />')}</div>
     </div>
   `
+  const link = document.createElement('a');
+  link.classList += 'raw';
+  link.onclick = function(event) {
+    event.preventDefault();
+    console.log(note);
+    writeClipboardText(JSON.stringify(note));
+  }
+
+  link.innerHTML = '<img src="code.svg" alt="Copy Raw" />';
+  div.querySelector('.pubkey').prepend(link)
 
   parent.appendChild(div)
+}
+
+async function writeClipboardText(text) {
+  if (text === undefined) {
+    text = "<blank>";
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    console.error(error.message);
+  }
 }
 
 initSqlJs(config).then(function(SQL){
@@ -646,7 +668,7 @@ initSqlJs(config).then(function(SQL){
       }
   
       console.log('Displaying toast!');
-      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at})
+      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at}, event)
 
       if (count > 0) {
         // Hack: Generate all comments twice while working on child comment rendering
@@ -721,7 +743,6 @@ initSqlJs(config).then(function(SQL){
       <img class="avatar" src="${avatarURL}" />
       <div class="content">
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
-          <input type="hidden" name="domain" value="" />
           <input type="hidden" name="url" value="${url}" />
   
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
