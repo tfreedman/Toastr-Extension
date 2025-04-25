@@ -292,16 +292,16 @@ initSqlJs(config).then(function(SQL){
     const url = new URL(taggedUrl);
     var domain = url.hostname.toLowerCase();
         
-    console.log('Inserting ' + value['id'] + ' into DB...');
+    console.log('Inserting ' + value['id'] + ' into Toasts DB...');
     db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
   }
 
   function importNote(value, index, array) {
     var note = JSON.stringify(value);
     if (value['kind'] == 0) {
-      var existing_note = db.exec("SELECT * FROM notes WHERE pubkey = ? AND kind = 0", [value['pubkey']]).length
-      if (length == 0) {
-        console.log('Inserting ' + value['id'] + ' into DB...');
+      var existing_note_length = db.exec("SELECT * FROM notes WHERE pubkey = ? AND kind = 0", [value['pubkey']]).length
+      if (existing_note_length == 0) {
+        console.log('Inserting ' + value['id'] + ' into Notes DB...');
         window.users[value['pubkey']] = value;
         if (value['pubkey'] == window.pubKey) {
           displayProfile(window.pubKey);
@@ -309,7 +309,7 @@ initSqlJs(config).then(function(SQL){
         db.run("INSERT INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
         console.log('Adding ' + value['pubkey'] + ' to window.users...');
       } else {
-        console.log('Updating ' + value['id'] + ' into DB...');
+        console.log('Updating ' + value['id'] + ' into Notes DB...');
         window.users[value['pubkey']] = value;
         if (value['pubkey'] == window.pubKey) {
           displayProfile(window.pubKey);
@@ -317,8 +317,25 @@ initSqlJs(config).then(function(SQL){
         db.run("UPDATE notes SET id = ? created_at = ?, kind = ?, note = ? WHERE pubkey = ? AND created_at < ?)", [value['id'], value['created_at'], value['kind'], note, value['pubkey'], value['created_at']]);
         console.log('Adding ' + value['pubkey'] + ' to window.users...');
       }
+    } else if (value['kind'] == 1) {
+      // Confirm it isn't a toast...
+      var isToast = false;
+      value["tags"].forEach((tag) => {
+        if (tag[0] == "t" && tag[1].toLowerCase().startsWith('toastr')) {
+          console.log("This is a toast - rejecting from Notes DB")
+          isToast = true;
+        }
+      });
+
+      if (isToast) {
+        return
+      }
+
+      console.log('Inserting ' + value['id'] + ' into Notes DB...');
+      db.run("INSERT INTO notes (id, created_at, pubkey, kind, note) VALUES (?, ?, ?, ?, ?)", [value['id'], value['created_at'], value['pubkey'], value['kind'], note]);
+      console.log('Adding ' + value['id'] + ' to notes');
     } else {
-      console.log('Not inserting ' + value['id'] + ' into DB - not a valid kind 0 event'); // Worry about non-kind 0 stuff later
+      console.log('Not inserting ' + value['id'] + ' into Notes DB - not a valid kind 0 event'); // Worry about non-kind 0 stuff later
     }
   }
 
@@ -422,7 +439,28 @@ initSqlJs(config).then(function(SQL){
           var dbstr = toBinString(window.db.export());
           window.localStorage.setItem("toastr.sqlite", dbstr);
         }
-        console.log('EOSE on toasts - Calling fetchAuthorInfo...')
+        //console.log('EOSE on toasts - Calling fetchAuthorInfo...')
+        //fetchAuthorInfo();
+        //h.close();
+      }
+    }
+  )
+
+  //TODO: properly load all replies in, instead of just all kind 1 notes
+  filters = [{kinds: [1]}]
+
+  var h = window.pool.subscribeMany(
+    relays,[
+      filters[0]
+    ],
+    {
+      onevent(event) {
+        if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
+          importNote(event);
+        }
+      },
+      oneose() {
+        console.log('EOSE on toasts - Calling fetchAuthorInfo...');
         fetchAuthorInfo();
         h.close();
       }
@@ -470,6 +508,10 @@ initSqlJs(config).then(function(SQL){
   });
 
 
+  function onlyUnique(value, index, array) {
+    return array.indexOf(value) === index;
+  }
+
   function fetchAuthorInfo() {
     var userPubkeys = [];
     var dirty = false;
@@ -481,6 +523,17 @@ initSqlJs(config).then(function(SQL){
       var event = JSON.parse(row.note);
       userPubkeys.push(event.pubkey)
     }
+
+    // Get the public keys of everyone who's written a note
+    var stmt = db.prepare("SELECT * FROM notes WHERE kind = 1");
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      var event = JSON.parse(row.note);
+      userPubkeys.push(event.pubkey)
+    }
+
+    // Suppress duplicate authors
+    userPubkeys = userPubkeys.filter(onlyUnique);
 
     console.log("userPubkeys: " + userPubkeys);
 
@@ -561,28 +614,11 @@ initSqlJs(config).then(function(SQL){
       var dirty = false;
       var replies = [];
 
-      var h = window.pool.subscribeMany(
-        relays,[
-          {kinds: [1], '#e': [mode.substring(8), "", "root"]}
-        ],
-        {
-          onevent(event) {
-            if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
-              replies.push(event);
-              dirty = true;
-            }
-          },
-          oneose() {
-            /*if (dirty) {
-              
-            }
-            console.log('EOSE on toasts - Calling fetchAuthorInfo...')
-            fetchAuthorInfo();
-            */ 
-            h.close();
-          }
-        }
-      )
+      // TODO: rewrite this to not use LIKE, and properly search for replies
+      //{kinds: [1], '#e': [mode.substring(8), "", "root"]}
+
+      stmt = db.prepare("SELECT * FROM notes WHERE kind = 1 AND id <> $id AND note LIKE $noteid");
+      stmt.bind({$id: mode.substring(8), $noteid: '%' + mode.substring(8) + '%'});
 
       emptyMsg = "";
     }
@@ -601,12 +637,13 @@ initSqlJs(config).then(function(SQL){
           break;
         }
       } else { // Replies
-        if (replies.length == 0) {
-          break;
+        if (stmt.step()) {
+          row = stmt.getAsObject();
+        } else {
+          return;
         }
-        row = replies[count];
       }
-      console.log('iteration: ' + count);
+      // console.log('iteration: ' + count);
       var event = JSON.parse(row.note);
       count += 1;
       var username = '';
