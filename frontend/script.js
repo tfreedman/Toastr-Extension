@@ -1,4 +1,5 @@
 var users = {};
+window.pool = null;
 var pubKey;
 
 config = {
@@ -146,25 +147,23 @@ function updateProfile() {
   if (website.length > 0) {content.website = website}
   if (banner.length > 0) {content.banner = banner}
   if (picture.length > 0) {content.picture = picture}
+
+  var e = {
+    created_at: Math.floor(Date.now() / 1000),
+    kind: 0,
+    tags: [],
+    content: JSON.stringify(content)
+  }
+
   if (typeof window.nostr !== 'undefined') {
     // NIP07 supported
-    window.nostr.signEvent({
-      created_at: Math.floor(Date.now() / 1000),
-       kind: 0,
-       tags: [],
-       content: JSON.stringify(content)
-    }).then(event => {
+    window.nostr.signEvent(e).then(event => {
       console.log("signed event via nip07: " + event);
       uploadProfileEvent(event);
     })
   } else {
   // NIP07 unsupported
-    var event = window.NostrTools.finalizeEvent({
-      kind: 0,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [],
-      content: JSON.stringify(content),
-    }, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
+    var event = window.NostrTools.finalizeEvent(e, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
     console.log("signed event without nip07: " + event);
     uploadProfileEvent(event);
   }
@@ -188,21 +187,16 @@ function newToastClose(event) {
 function newToastSubmit(event) {
   event.preventDefault();
   var data = event.target;
-
+  var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value};
   if (typeof window.nostr !== 'undefined') {
     // NIP07 supported
-    window.nostr.signEvent({ created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value }).then(note => {
+    window.nostr.signEvent(e).then(note => {
       console.log("signed note via nip07: " + note);
       uploadNote(data, note, data.parentElement.parentElement.parentElement);
     })
   } else {
   // NIP07 unsupported
-    var note = window.NostrTools.finalizeEvent({
-      kind: 1,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [['r', data.url.value], ['t', 'toastr']],
-      content: data.message.value,
-    }, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
+    var note = window.NostrTools.finalizeEvent(e, Uint8Array.from(window.NostrTools.nip19.decode(localStorage.getItem('privkey')).data))
     console.log("signed note without nip07: " + note);
     uploadNote(data, note, data.parentElement.parentElement.parentElement);
   }
@@ -412,7 +406,7 @@ initSqlJs(config).then(function(SQL){
     displayProfile(pk);
   }
 
-  let h = window.pool.subscribeMany(
+  var h = window.pool.subscribeMany(
     relays,[
       {kinds: [1], '#t': ["toastr"]}
     ],
@@ -430,7 +424,7 @@ initSqlJs(config).then(function(SQL){
         }
         console.log('EOSE on toasts - Calling fetchAuthorInfo...')
         fetchAuthorInfo();
-        //h.close()
+        h.close();
       }
     }
   )
@@ -490,7 +484,7 @@ initSqlJs(config).then(function(SQL){
 
     console.log("userPubkeys: " + userPubkeys);
 
-    let h = window.pool.subscribeMany(
+    var h = window.pool.subscribeMany(
       relays,[
         {kinds: [0], authors: userPubkeys}
       ],
@@ -520,7 +514,7 @@ initSqlJs(config).then(function(SQL){
               }
             });
           }
-          //h.close()
+          h.close();
         }
       }
     )
@@ -566,10 +560,10 @@ initSqlJs(config).then(function(SQL){
       console.log('Loading replies for ' + mode.substring(8));
       var dirty = false;
       var replies = [];
-/*
-      let h = window.pool.subscribeMany(
+
+      var h = window.pool.subscribeMany(
         relays,[
-          {kinds: [1], '#e': [mode.substring(8)]}
+          {kinds: [1], '#e': [mode.substring(8), "", "root"]}
         ],
         {
           onevent(event) {
@@ -579,17 +573,18 @@ initSqlJs(config).then(function(SQL){
             }
           },
           oneose() {
-            if (dirty) {
+            /*if (dirty) {
               
             }
-//            console.log('EOSE on toasts - Calling fetchAuthorInfo...')
-//            fetchAuthorInfo();
-            //h.close()
+            console.log('EOSE on toasts - Calling fetchAuthorInfo...')
+            fetchAuthorInfo();
+            */ 
+            h.close();
           }
         }
       )
 
-      emptyMsg = "";*/
+      emptyMsg = "";
     }
 
     var count = 0;
@@ -671,10 +666,9 @@ initSqlJs(config).then(function(SQL){
       displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at}, event)
 
       if (count > 0) {
-        // Hack: Generate all comments twice while working on child comment rendering
+        // Draw replies
         const children = document.createElement('div');
         children.classList.add('children');
-
 
         container.querySelector('.toasts').appendChild(children);
 
@@ -683,8 +677,6 @@ initSqlJs(config).then(function(SQL){
         children.appendChild(toasts);
 
         drawToasts(children, knownUsers, "replies-" + event.id);
-        // displayToast(children, {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at})
-        // End Hack
       }
       lastRow = row;
     }
