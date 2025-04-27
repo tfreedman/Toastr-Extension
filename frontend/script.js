@@ -186,8 +186,25 @@ function newToastClose(event) {
 
 function newToastSubmit(event) {
   event.preventDefault();
+  window.data = event.target;
+
   var data = event.target;
-  var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value};
+  var e = event.target.querySelectorAll("input[name='e']");
+
+  if (data.url.value != "") {
+    // Root Note
+    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value};
+  } else if (e[0] && (e[0].dataset.marker == "reply" || e[0].dataset.marker == "root")) {
+    // Reply
+    var tags = [];
+    e.forEach((el) => {
+      tags.push(['e', el.dataset.eventId, el.dataset.relayUrl, el.dataset.marker, el.dataset.pubkey]);
+    });
+
+    console.log('tags: ' + tags);
+    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: tags, content: data.message.value};
+  }
+
   if (typeof window.nostr !== 'undefined') {
     // NIP07 supported
     window.nostr.signEvent(e).then(note => {
@@ -203,7 +220,6 @@ function newToastSubmit(event) {
 }
 
 function uploadNote(data, note, parent) {
-  window.parent = parent;
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
     var avatarURL = null;
@@ -250,6 +266,8 @@ function displayToast(parent, data, note) {
         <div class="pubkey">${data.pubkey}</div>
       </header>
       <div class="caption">${data.message.replace(/\n/g, '<br />')}</div>
+      <footer>
+      </footer>
     </div>
   `
   const link = document.createElement('a');
@@ -263,6 +281,11 @@ function displayToast(parent, data, note) {
   link.innerHTML = '<img src="code.svg" alt="Copy Raw" />';
   div.querySelector('.pubkey').prepend(link)
 
+
+  const reply = document.createElement('a');
+  reply.innerHTML = '<img src="reply.svg" alt="Reply" />';
+
+  div.querySelector('footer').prepend(reply)
   parent.appendChild(div)
 }
 
@@ -713,6 +736,12 @@ initSqlJs(config).then(function(SQL){
         toasts.classList.add('toasts');
         children.appendChild(toasts);
 
+        var marker = 'root';
+        if (mode.startsWith("replies-")) {
+          marker = 'reply'
+        }
+
+        newToast(children, {events: [{eventId: event.id, marker: marker, relayUrl: '', pubkey: event.pubkey}]});
         drawToasts(children, knownUsers, "replies-" + event.id);
       }
       lastRow = row;
@@ -726,7 +755,7 @@ initSqlJs(config).then(function(SQL){
         container.querySelector('.toasts-empty').classList.remove("active");
       }
       if (mode.startsWith('url-')) {
-        newToast(container, mode.substring(4));
+        newToast(container, {url: mode.substring(4)});
       } else {
         // Hide New Toast Button and Form
         try {
@@ -737,23 +766,11 @@ initSqlJs(config).then(function(SQL){
     } catch (e) {}
   }
 
-  function newToast(node, url) {
-    if (node.querySelector('.toast-new') !== null) {
+  function newToast(node, params) {
+    if (node.querySelector('& > .toast-new') !== null) {
       console.log('New toast form already exists - showing the old one');
-      node.querySelector('input[name="url"]').value = url; // Update the URL of the newToast form
       node.querySelector('.toast-new-button').classList.remove("hidden");
       return;
-    }
-    const button = document.createElement('button');
-    button.innerHTML = `New Toast`
-    button.setAttribute('type', 'button');
-
-    button.classList.add("toast-new-button");
-    button.onclick = function() {
-      let div = this.nextElementSibling;
-      div.classList.remove('hidden');
-
-      this.classList.add('hidden');
     }
 
     // Grab the profile picture URL from the settings box for the time being
@@ -768,12 +785,30 @@ initSqlJs(config).then(function(SQL){
     div.classList.add('toast-new');
     div.classList.add('hidden');
 
-    div.innerHTML = `
+    var url = '';
+    var events = [];
+  
+    if (params.url !== undefined) {
+      // This is a root toast
+      url = params.url;    
+    } else if (params.events !== undefined) { 
+      // This is a reply
+      events = params.events;
+    }
+
+    var innerHTML = `
       <img class="avatar" src="${avatarURL}" />
       <div class="content">
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="url" value="${url}" />
-  
+    `
+          events.forEach(function (event, index) {
+            innerHTML += `
+          <input type="hidden" name="e" data-event-id="${event.eventId}" data-relay-url="${event.relayUrl}" data-marker="${event.marker}" data-pubkey="${event.pubkey}" />
+            `
+          })
+
+       innerHTML += `
           <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
           <button type="submit" class="toast-submit-button">Toast</button>
           <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
@@ -781,7 +816,25 @@ initSqlJs(config).then(function(SQL){
       </div>
     `
 
-    node.append(button);
+    div.innerHTML = innerHTML;
+
+    if (params.events === undefined) { // Do not add a New Toast button to replies
+      const button = document.createElement('button');
+      button.innerHTML = `New Toast`
+      button.setAttribute('type', 'button');
+
+
+      button.classList.add("toast-new-button");
+      button.onclick = function() {
+        let div = this.nextElementSibling;
+        div.classList.remove('hidden');
+
+        this.classList.add('hidden');
+      }
+
+      node.append(button);
+    }
+
     node.append(div);
   }
 
