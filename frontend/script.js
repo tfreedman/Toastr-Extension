@@ -737,11 +737,21 @@ initSqlJs(config).then(function(SQL){
         children.appendChild(toasts);
 
         var marker = 'root';
-        if (mode.startsWith("replies-")) {
-          marker = 'reply'
-        }
+        // Copy all of the e Tags from the references in the parent post
+        var eTags = [];
+        event["tags"].forEach((tag) => {
+          if (tag[0] == "e") {
+            eTags.push(tag);
+            if (tag[3] && tag[3] == 'root') {
+              marker = 'reply'; // If there's a root e tag defined, mark it as a reply instead.
+            }
+          }
+        });
 
-        newToast(children, {events: [{eventId: event.id, marker: marker, relayUrl: '', pubkey: event.pubkey}]});
+        // Add the parent post itself as a reference
+        eTags.push(['e', event.id, '', marker, event.pubkey])
+  
+        newToast(children, {eTags: eTags});
         drawToasts(children, knownUsers, "replies-" + event.id);
       }
       lastRow = row;
@@ -786,14 +796,14 @@ initSqlJs(config).then(function(SQL){
     div.classList.add('hidden');
 
     var url = '';
-    var events = [];
+    var eTags = [];
   
     if (params.url !== undefined) {
       // This is a root toast
       url = params.url;    
-    } else if (params.events !== undefined) { 
+    } else if (params.eTags !== undefined) { 
       // This is a reply
-      events = params.events;
+      eTags = params.eTags;
     }
 
     var innerHTML = `
@@ -802,9 +812,9 @@ initSqlJs(config).then(function(SQL){
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="url" value="${url}" />
     `
-          events.forEach(function (event, index) {
+          eTags.forEach(function (tag, index) {
             innerHTML += `
-          <input type="hidden" name="e" data-event-id="${event.eventId}" data-relay-url="${event.relayUrl}" data-marker="${event.marker}" data-pubkey="${event.pubkey}" />
+          <input type="hidden" name="e" data-event-id="${tag[1]}" data-relay-url="${tag[2]}" data-marker="${tag[3]}" data-pubkey="${tag[4]}" />
             `
           })
 
@@ -818,7 +828,7 @@ initSqlJs(config).then(function(SQL){
 
     div.innerHTML = innerHTML;
 
-    if (params.events === undefined) { // Do not add a New Toast button to replies
+    if (params.eTags === undefined) { // Do not add a New Toast button to replies
       const button = document.createElement('button');
       button.innerHTML = `New Toast`
       button.setAttribute('type', 'button');
