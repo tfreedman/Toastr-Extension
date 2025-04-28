@@ -666,8 +666,31 @@ initSqlJs(config).then(function(SQL){
           return;
         }
       }
+
       // console.log('iteration: ' + count);
       var event = JSON.parse(row.note);
+
+      // Our database code currently does not support properly parsing the tag column of Nostr notes,
+      // so you can't just ask for 'direct children of note X' - instead, you have to ask for notes
+      // that reference X, which might include great-great-grandchildren, or other insane relationships.
+      // Then you have to parse every response to the query and actually perform the check by parsing
+      // the note directly, and short circuit rendering if it isn't actually what you wanted.
+
+      var parent = '';
+
+      if (mode.startsWith("replies-")) {
+        // Copy all of the e Tags from the references in the parent post
+        event["tags"].forEach((tag) => {
+          if (tag[0] == "e") {
+            parent = tag[1];
+          }
+        });
+
+        if (parent != mode.substring(8)) {
+          continue; // Cancel rendering if the parent isn't actually an exact match.
+        }
+      }
+
       count += 1;
       var username = '';
       var avatarURL = null;
