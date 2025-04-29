@@ -285,6 +285,12 @@ function displayToast(parent, data, note) {
   const reply = document.createElement('a');
   reply.innerHTML = '<img src="reply.svg" alt="Reply" />';
 
+  reply.onclick = function() {
+    window.node = this;
+    var form = this.parentElement.parentElement.parentElement.nextSibling.querySelector('& > .toast-new');
+    form.classList.remove('hidden');
+  }
+
   div.querySelector('footer').prepend(reply)
   parent.appendChild(div)
 }
@@ -825,6 +831,9 @@ initSqlJs(config).then(function(SQL){
 
     var url = '';
     var eTags = [];
+    var placeholderText = 'Write a toast...';
+    var actionText = 'Toast';
+
   
     if (params.url !== undefined) {
       // This is a root toast
@@ -832,6 +841,8 @@ initSqlJs(config).then(function(SQL){
     } else if (params.eTags !== undefined) { 
       // This is a reply
       eTags = params.eTags;
+      placeholderText = 'Write a reply...';
+      actionText = 'Reply';
     }
 
     var innerHTML = `
@@ -847,8 +858,8 @@ initSqlJs(config).then(function(SQL){
           })
 
        innerHTML += `
-          <textarea type="text" name="message" placeholder="Write a toast..."></textarea>
-          <button type="submit" class="toast-submit-button">Toast</button>
+          <textarea type="text" name="message" placeholder="${placeholderText}"></textarea>
+          <button type="submit" class="toast-submit-button">${actionText}</button>
           <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
         </form>
       </div>
