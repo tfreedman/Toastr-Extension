@@ -462,20 +462,24 @@ initSqlJs(config).then(function(SQL){
           var dbstr = toBinString(window.db.export());
           window.localStorage.setItem("toastr.sqlite", dbstr);
         }
-        //console.log('EOSE on toasts - Calling fetchAuthorInfo...')
-        //fetchAuthorInfo();
         //h.close();
       }
     }
   )
 
-  //TODO: properly load all replies in, instead of just all kind 1 notes
-  filters = [{kinds: [1]}]
+  var filters = [];
+  var stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
+  while(stmt.step()) {
+    const row = stmt.getAsObject();
+    var event = JSON.parse(row.note);
+    filters.push({kinds: [1], '#e': [event.id]});
+  }
+
+  window.filters = filters;
+  console.log('filters: '+ filters.toString());
 
   var h = window.pool.subscribeMany(
-    relays,[
-      filters[0]
-    ],
+    relays, filters,
     {
       onevent(event) {
         if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
@@ -483,7 +487,7 @@ initSqlJs(config).then(function(SQL){
         }
       },
       oneose() {
-        console.log('EOSE on toasts - Calling fetchAuthorInfo...');
+        console.log('EOSE on notes/comments - Calling fetchAuthorInfo...');
         fetchAuthorInfo();
         h.close();
       }
@@ -638,7 +642,8 @@ initSqlJs(config).then(function(SQL){
       var replies = [];
 
       // TODO: rewrite this to not use LIKE, and properly search for replies
-      //{kinds: [1], '#e': [mode.substring(8), "", "root"]}
+      // This is only doable with an index of tags though.
+      // {kinds: [1], '#e': [mode.substring(8), "", "root/reply"]}
 
       stmt = db.prepare("SELECT * FROM notes WHERE kind = 1 AND id <> $id AND note LIKE $noteid");
       stmt.bind({$id: mode.substring(8), $noteid: '%' + mode.substring(8) + '%'});
