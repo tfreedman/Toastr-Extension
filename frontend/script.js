@@ -520,7 +520,7 @@ initSqlJs(config).then(function(SQL){
       mode = 'url-' + searchValue;
     } else if (searchValue.startsWith('npub')) {
       mode = 'profile-' + searchValue;
-    } else if (searchValue.startsWith('note')) {
+    } else if (searchValue.startsWith('note') || searchValue.startsWith('nevent')) {
       mode = 'toast-' + searchValue;
     } else {
       mode = 'domain-' + searchValue;
@@ -655,7 +655,13 @@ initSqlJs(config).then(function(SQL){
     } else if (mode.startsWith("toast")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
       console.log("Filtering to toast " + mode.substring(6));
-      var id = window.NostrTools.nip19.decode(mode.substring(6)).data;
+
+      if (mode.substring(6).startsWith("note")) {
+        var id = window.NostrTools.nip19.decode(mode.substring(6)).data;
+      } else if (mode.substring(6).startsWith('nevent')) {
+        var id = window.NostrTools.nip19.decode(mode.substring(6)).data.id;
+      }
+
       stmt.bind({$id: id});
       emptyMsg = "Sorry, there are no toasts corresponding to " + mode.substring(6) + ' (' + id + ')';
     } else if (mode.startsWith("replies-")) {
