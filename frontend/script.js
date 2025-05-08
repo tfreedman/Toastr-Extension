@@ -518,6 +518,8 @@ initSqlJs(config).then(function(SQL){
 
     } else if ((searchValue.startsWith('https://') || searchValue.startsWith('http://')) && (searchValue.split("/").length - 1) > 2) {
       mode = 'url-' + searchValue;
+    } else if (searchValue.startsWith('npub')) {
+      mode = 'profile-' + searchValue;
     } else {
       mode = 'domain-' + searchValue;
     }
@@ -642,6 +644,12 @@ initSqlJs(config).then(function(SQL){
       console.log("Filtering to URL " + mode.substring(4));
       stmt.bind({$url: mode.substring(4)});
       emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
+    } else if (mode.startsWith("profile")) {
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND pubkey = $pubkey ORDER BY created_at ASC");
+      console.log("Filtering to profile " + mode.substring(8));
+      var pubkey = window.NostrTools.nip19.decode(mode.substring(8)).data;
+      stmt.bind({$pubkey: pubkey});
+      emptyMsg = "Sorry, there are no toasts from profile " + mode.substring(8) + ' (' + pubkey + ')';
     } else if (mode.startsWith("replies-")) {
       console.log('Loading replies for ' + mode.substring(8));
       var dirty = false;
