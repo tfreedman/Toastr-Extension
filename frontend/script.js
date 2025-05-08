@@ -520,6 +520,8 @@ initSqlJs(config).then(function(SQL){
       mode = 'url-' + searchValue;
     } else if (searchValue.startsWith('npub')) {
       mode = 'profile-' + searchValue;
+    } else if (searchValue.startsWith('note')) {
+      mode = 'toast-' + searchValue;
     } else {
       mode = 'domain-' + searchValue;
     }
@@ -650,6 +652,12 @@ initSqlJs(config).then(function(SQL){
       var pubkey = window.NostrTools.nip19.decode(mode.substring(8)).data;
       stmt.bind({$pubkey: pubkey});
       emptyMsg = "Sorry, there are no toasts from profile " + mode.substring(8) + ' (' + pubkey + ')';
+    } else if (mode.startsWith("toast")) {
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
+      console.log("Filtering to toast " + mode.substring(6));
+      var id = window.NostrTools.nip19.decode(mode.substring(6)).data;
+      stmt.bind({$id: id});
+      emptyMsg = "Sorry, there are no toasts corresponding to " + mode.substring(6) + ' (' + id + ')';
     } else if (mode.startsWith("replies-")) {
       console.log('Loading replies for ' + mode.substring(8));
       var dirty = false;
