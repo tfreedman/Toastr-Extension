@@ -232,6 +232,7 @@ function uploadNote(data, note, parent) {
     else {
       username = 'Unknown';
     }
+
     displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatarURL: avatarURL, created_at: Date.now() / 1000}, note)
 
     // Hide Message Box
@@ -244,7 +245,31 @@ function uploadNote(data, note, parent) {
 
 function displayToast(parent, data, note) {
   const div = document.createElement('div');
+
+  var root = null;
+  var hash = null;
+  note["tags"].forEach((tag) => {
+    if (tag[0] == "e") {
+      if (tag[3] && tag[3] == 'root') {
+        root = tag[1];
+      }
+    }
+  });
+
+  if (root) {
+    hash = window.NostrTools.nip19.noteEncode(root) + "-" + window.NostrTools.nip19.noteEncode(note["id"]);
+  } else {
+    hash = window.NostrTools.nip19.noteEncode(note["id"])
+  }
+
   div.classList.add('toast');
+
+  div.id = hash;
+
+  if (document.getElementById('search-bar').value == hash) {
+    div.classList.add('highlight');
+  }
+
   var epoch_timestamp = new Date(0);
   epoch_timestamp.setUTCSeconds(data.created_at);
 
@@ -281,6 +306,23 @@ function displayToast(parent, data, note) {
   link.innerHTML = '<img src="code.svg" alt="Copy Raw" />';
   div.querySelector('.pubkey').prepend(link)
 
+  const permalink = document.createElement('a');
+  permalink.innerHTML = '<img src="link.svg" alt="Permalink" />';
+
+  permalink.onclick = function(event) {
+    event.preventDefault();
+
+    location.hash = '#' + hash;
+
+    Array.from(document.querySelectorAll('.highlight')).forEach(
+      (el) => el.classList.remove('highlight')
+    );
+
+    div.classList.add('highlight');
+
+    document.getElementById('search-bar').value = hash;
+    console.log(hash);
+  }
 
   const reply = document.createElement('a');
   reply.innerHTML = '<img src="reply.svg" alt="Reply" />';
@@ -292,6 +334,7 @@ function displayToast(parent, data, note) {
   }
 
   div.querySelector('footer').prepend(reply)
+  div.querySelector('footer').prepend(permalink)
   parent.appendChild(div)
 }
 
@@ -501,6 +544,11 @@ initSqlJs(config).then(function(SQL){
   )
 
   // Search Code
+  if (window.location.hash) {
+    document.getElementById('search-bar').value = window.location.hash.substring(1, window.location.hash.length)
+  } else {
+    // Fragment doesn't exist
+  }
 
   const searchBar = document.getElementById('search-bar');
   const searchResults = (searchValue) => {
@@ -654,12 +702,14 @@ initSqlJs(config).then(function(SQL){
       emptyMsg = "Sorry, there are no toasts from profile " + mode.substring(8) + ' (' + pubkey + ')';
     } else if (mode.startsWith("toast")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
-      console.log("Filtering to toast " + mode.substring(6));
+      var query = mode.split('-')[1];
 
-      if (mode.substring(6).startsWith("note")) {
-        var id = window.NostrTools.nip19.decode(mode.substring(6)).data;
-      } else if (mode.substring(6).startsWith('nevent')) {
-        var id = window.NostrTools.nip19.decode(mode.substring(6)).data.id;
+      console.log("Filtering to toast " + query);
+
+      if (query.startsWith("note")) {
+        var id = window.NostrTools.nip19.decode(query).data;
+      } else if (query.startsWith('nevent')) {
+        var id = window.NostrTools.nip19.decode(query).data.id;
       }
 
       stmt.bind({$id: id});
@@ -777,8 +827,6 @@ initSqlJs(config).then(function(SQL){
           oldSubHeading = newSubHeading;
         }
       }
-  
-      console.log('Displaying toast!');
       displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at}, event)
 
       if (count > 0) {
@@ -829,6 +877,11 @@ initSqlJs(config).then(function(SQL){
           container.querySelector('.toast-new').classList.add("hidden");
         } catch (e) {}
       }
+
+      if (document.getElementById('search-bar').value) {
+        document.querySelector('#' + document.getElementById('search-bar').value).scrollIntoView();
+      }
+
     } catch (e) {}
   }
 
