@@ -186,14 +186,13 @@ function newToastClose(event) {
 
 function newToastSubmit(event) {
   event.preventDefault();
-  window.data = event.target;
 
   var data = event.target;
   var e = event.target.querySelectorAll("input[name='e']");
 
   if (data.url.value != "") {
     // Root Note
-    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr']], content: data.message.value};
+    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr'], ['subject', data.message.value]], content: data.message.value};
   } else if (e[0] && (e[0].dataset.marker == "reply" || e[0].dataset.marker == "root")) {
     // Reply
     var tags = [];
@@ -262,7 +261,7 @@ function displayToast(parent, data, note) {
     hash = window.NostrTools.nip19.noteEncode(note["id"])
   }
 
-  div.classList.add('toast');
+  div.classList.add('note');
 
   div.id = hash;
 
@@ -447,7 +446,7 @@ initSqlJs(config).then(function(SQL){
       currentWindow: true
     }, function(tabs) {
       searchBar.value = tabs[0].url;
-      onInput(searchBar.value);
+      searchResults(document.getElementById('search-bar').value);
     });
   } else {
     // Not a browser extension
@@ -538,6 +537,7 @@ initSqlJs(config).then(function(SQL){
       oneose() {
         console.log('EOSE on notes/comments - Calling fetchAuthorInfo...');
         fetchAuthorInfo();
+
         h.close();
       }
     }
@@ -592,7 +592,6 @@ initSqlJs(config).then(function(SQL){
     onInput(e.target.value);
   });
 
-
   function onlyUnique(value, index, array) {
     return array.indexOf(value) === index;
   }
@@ -645,12 +644,17 @@ initSqlJs(config).then(function(SQL){
               }
             });
           } else {
-            drawToasts(document.querySelector('.toasts-container'), window.users, "recent");
-            document.querySelectorAll('#toastr nav a').forEach(l => {
-              if (l.dataset.mode == "recent") {
-                l.classList.add("active");
-              }
-            });
+            // Ready to draw page contents - has someone attempted a search (via the URL slug) ?
+            if (document.getElementById('search-bar').value == "") { // If yes
+              drawToasts(document.querySelector('.toasts-container'), window.users, "recent");
+              document.querySelectorAll('#toastr nav a').forEach(l => {
+                if (l.dataset.mode == "recent") {
+                  l.classList.add("active");
+                }
+              });
+            } else { // If no.
+              searchResults(document.getElementById('search-bar').value);
+            }
           }
           h.close();
         }
@@ -663,6 +667,8 @@ initSqlJs(config).then(function(SQL){
     try {
       container.querySelector('.toasts-loading').classList.add("active");
       container.querySelector('.toasts').innerHTML = '';
+      container.querySelector('.toast-new').remove();
+      container.querySelector('.toast-new-button').remove();
     } catch (e) {}
 
     var users = {}
@@ -678,28 +684,41 @@ initSqlJs(config).then(function(SQL){
     }
 
     var emptyMsg = '';
-    var oldHeading = '';
-    var oldSubHeading = '';
+    var shouldShowHeadings = false;
+    var shouldShowComments = false;
+    var showEmptyMessage = true;
 
     if (mode.startsWith("domain-")) {
       console.log("Filtering to domain name " + mode.substring(7));
       emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain ORDER BY created_at ASC");
       stmt.bind({$domain: mode.substring(7)});
+
+      shouldShowHeadings = true;
+      shouldShowComments = false;
     } else if (mode == "recent") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 ORDER BY created_at DESC");
-      emptyMsg = "Sorry, there are no toasts";
+
+      shouldShowHeadings = true;
+      shouldShowComments = false;
+      emptyMsg = "Sorry, there are no recent toasts";
     } else if (mode.startsWith("url-")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url ORDER BY created_at ASC");
       console.log("Filtering to URL " + mode.substring(4));
       stmt.bind({$url: mode.substring(4)});
       emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
+
+      shouldShowHeadings = true;
+      shouldShowComments = false;
     } else if (mode.startsWith("profile")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND pubkey = $pubkey ORDER BY created_at ASC");
       console.log("Filtering to profile " + mode.substring(8));
       var pubkey = window.NostrTools.nip19.decode(mode.substring(8)).data;
       stmt.bind({$pubkey: pubkey});
       emptyMsg = "Sorry, there are no toasts from profile " + mode.substring(8) + ' (' + pubkey + ')';
+
+      shouldShowHeadings = true;
+      shouldShowComments = false;
     } else if (mode.startsWith("toast")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
       var query = mode.split('-')[1];
@@ -714,7 +733,13 @@ initSqlJs(config).then(function(SQL){
 
       stmt.bind({$id: id});
       emptyMsg = "Sorry, there are no toasts corresponding to " + mode.substring(6) + ' (' + id + ')';
+
+      shouldShowHeadings = true;
+      shouldShowComments = true;
     } else if (mode.startsWith("replies-")) {
+      shouldShowHeadings = false;
+      shouldShowComments = true;
+
       console.log('Loading replies for ' + mode.substring(8));
       var dirty = false;
       var replies = [];
@@ -729,28 +754,16 @@ initSqlJs(config).then(function(SQL){
       emptyMsg = "";
     }
 
-    var count = 0;
     var row;
-    var lastRow;
 
-    var drawHeadings = false;
     while(true) {
-      if (!mode.startsWith("replies-")) { // Toasts
-        if (stmt.step()) {
-          row = stmt.getAsObject();
-          drawHeadings = true;
-        } else {
-          break;
-        }
-      } else { // Replies
-        if (stmt.step()) {
-          row = stmt.getAsObject();
-        } else {
-          return;
-        }
+      if (stmt.step()) {
+        row = stmt.getAsObject();
+        showEmptyMessage = false;
+      } else {
+        break;
       }
 
-      // console.log('iteration: ' + count);
       var event = JSON.parse(row.note);
 
       // Our database code currently does not support properly parsing the tag column of Nostr notes,
@@ -774,7 +787,6 @@ initSqlJs(config).then(function(SQL){
         }
       }
 
-      count += 1;
       var username = '';
       var avatarURL = null;
       if (users[event.pubkey]) {
@@ -785,51 +797,75 @@ initSqlJs(config).then(function(SQL){
       else {
         username = 'Unknown';
       }
-      if (drawHeadings) {
-        var newHeading = row.domain;
-        var newSubHeading = row.url.split(row.domain, 2)[1];
+      if (shouldShowHeadings) {
+        var article = document.createElement('div');
+        article.classList += 'toast'
 
-        if (oldHeading != newHeading) {
-          const heading = document.createElement('h2');
-          const link = document.createElement('a');
-          link.onclick = function(event) {
-            event.preventDefault();
-            searchBar.value = event.target.dataset.domain;
-            onInput(event.target.dataset.domain);
-          }
-          link.href = row.url;
-          link.dataset.domain = row.domain;
-          link.dataset.url = row.url;
-          link.innerHTML = newHeading;
-          heading.appendChild(link);
+        var ccStmt = db.prepare("SELECT COUNT(*) FROM notes WHERE kind = 1 AND id <> $id AND note LIKE $noteid");
+        ccStmt.bind({$id: event.id, $noteid: '%' + event.id + '%'});
 
-          container.querySelector('.toasts').appendChild(heading);
-          oldHeading = newHeading;
-          oldSubHeading = ''; // If the new domain changes, reset the subHeading
+        if (ccStmt.step()) {var commentsCount = ccStmt.getAsObject()["COUNT(*)"]}
+        var commentsString = '';
+
+        if (commentsCount != 1) {
+          commentsString = 'comments';
+        } else {
+          commentsString = 'comment';
         }
 
-        if (oldSubHeading != newSubHeading) {
-          const heading = document.createElement('h3');
-          const link = document.createElement('a');
-          link.onclick = function(event) {
-            event.preventDefault();
+        var epochTimestamp = new Date(0);
+        epochTimestamp.setUTCSeconds(event.created_at);
 
-            searchBar.value = event.target.dataset.url;
-            onInput(event.target.dataset.url);
-          }
-          link.href = row.url;
-          link.dataset.domain = row.domain;
-          link.dataset.url = row.url;
-          link.innerHTML = newSubHeading;
-          heading.appendChild(link);
+        var innerHTML = `<h2><a href="${row.url}">${event.content}</a></h2>
+        <p><a class="comments"></a> &middot; ${epochTimestamp.toLocaleString()} &middot; <a class="domain"></a> &middot; submitted by <a class="submitter"></a> </p>
+        `
 
-          container.querySelector('.toasts').appendChild(heading);
-          oldSubHeading = newSubHeading;
+        article.innerHTML = innerHTML;
+        container.querySelector('.toasts').appendChild(article);
+
+        var commentsLink = article.querySelector('a.comments');
+        commentsLink.innerHTML = `${commentsCount} ${commentsString}`
+        commentsLink.onclick = function(event) {
+          event.preventDefault();
+
+          location.hash = '#' + event.target.dataset.id;
+          document.getElementById('search-bar').value = event.target.dataset.id;
+          searchResults(document.getElementById('search-bar').value);
         }
+        commentsLink.href = window.NostrTools.nip19.noteEncode(event.id);
+        commentsLink.dataset.id = window.NostrTools.nip19.noteEncode(event.id);
+
+        var domainLink = article.querySelector('a.domain');
+        domainLink.innerHTML = `${row.domain}`
+        domainLink.onclick = function(event) {
+          event.preventDefault();
+
+          location.hash = '#' + event.target.dataset.domain;
+          document.getElementById('search-bar').value = event.target.dataset.domain;
+          searchResults(document.getElementById('search-bar').value);
+        }
+        domainLink.href = row.url;
+        domainLink.dataset.domain = row.domain;
+        domainLink.dataset.url = row.url;
+
+        var submitterLink = article.querySelector('a.submitter');
+        submitterLink.innerHTML = `${username}`
+        submitterLink.onclick = function(event) {
+          event.preventDefault();
+
+          location.hash = '#' + event.target.dataset.pubkey;
+          document.getElementById('search-bar').value = event.target.dataset.pubkey;
+          searchResults(document.getElementById('search-bar').value);
+        }
+
+        submitterLink.href = window.NostrTools.nip19.npubEncode(event.pubkey);
+        submitterLink.dataset.pubkey = window.NostrTools.nip19.npubEncode(event.pubkey);
+
+      } else {
+        displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at}, event);
       }
-      displayToast(container.querySelector('.toasts'), {username: username, pubkey: event.pubkey, message: event.content, avatarURL: avatarURL, created_at: event.created_at}, event)
 
-      if (count > 0) {
+      if (shouldShowComments) {
         // Draw replies
         const children = document.createElement('div');
         children.classList.add('children');
@@ -854,28 +890,23 @@ initSqlJs(config).then(function(SQL){
 
         // Add the parent post itself as a reference
         eTags.push(['e', event.id, '', marker, event.pubkey])
-  
         newToast(children, {eTags: eTags});
         drawToasts(children, knownUsers, "replies-" + event.id);
       }
-      lastRow = row;
     }
     try {
       container.querySelector('.toasts-loading').classList.remove("active");
-      if (count == 0) {
+      if (showEmptyMessage) {
+        container.querySelector('.toasts-empty').innerHTML = emptyMsg;
         container.querySelector('.toasts-empty').classList.add("active");
-        container.querySelector('.toasts').innerHTML = emptyMsg;
       } else {
+        container.querySelector('.toasts-empty').innerHTML = '';
         container.querySelector('.toasts-empty').classList.remove("active");
       }
       if (mode.startsWith('url-')) {
         newToast(container, {url: mode.substring(4)});
-      } else {
-        // Hide New Toast Button and Form
-        try {
-          container.querySelector('.toast-new-button').classList.add("hidden");
-          container.querySelector('.toast-new').classList.add("hidden");
-        } catch (e) {}
+      } else if (mode.startsWith('toast-')) {
+        newToast(container, {eTags: [['e', event.id, '', 'root', event.pubkey]], showButton: true});
       }
 
       if (document.getElementById('search-bar').value) {
@@ -886,12 +917,6 @@ initSqlJs(config).then(function(SQL){
   }
 
   function newToast(node, params) {
-    if (node.querySelector('& > .toast-new') !== null) {
-      console.log('New toast form already exists - showing the old one');
-      node.querySelector('.toast-new-button').classList.remove("hidden");
-      return;
-    }
-
     // Grab the profile picture URL from the settings box for the time being
     var avatarURL;
     if (document.querySelector('#profile input[name="picture"]').value !== "") {
@@ -905,18 +930,26 @@ initSqlJs(config).then(function(SQL){
     div.classList.add('hidden');
 
     var url = '';
+    var subject = '';
     var eTags = [];
-    var placeholderText = 'Write a toast...';
-    var actionText = 'Toast';
-
+    var placeholderText;
+    var actionText;
+    var buttonText;
   
     if (params.url !== undefined) {
       // This is a root toast
+      subject = '';
       url = params.url;    
+
+      placeholderText = 'Write a toast...';
+      buttonText = 'New Toast';
+      actionText = 'Toast';
     } else if (params.eTags !== undefined) { 
       // This is a reply
       eTags = params.eTags;
+
       placeholderText = 'Write a reply...';
+      buttonText = 'New Comment'
       actionText = 'Reply';
     }
 
@@ -925,6 +958,7 @@ initSqlJs(config).then(function(SQL){
       <div class="content">
         <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
           <input type="hidden" name="url" value="${url}" />
+          <input type="hidden" name="subject" value="${subject}" />
     `
           eTags.forEach(function (tag, index) {
             innerHTML += `
@@ -942,11 +976,10 @@ initSqlJs(config).then(function(SQL){
 
     div.innerHTML = innerHTML;
 
-    if (params.eTags === undefined) { // Do not add a New Toast button to replies
+    if (url != '' || params.showButton !== undefined) { // Do not add a New Toast button to replies - they have their own button
       const button = document.createElement('button');
-      button.innerHTML = `New Toast`
+      button.innerHTML = buttonText;
       button.setAttribute('type', 'button');
-
 
       button.classList.add("toast-new-button");
       button.onclick = function() {

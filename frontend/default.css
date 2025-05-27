@@ -108,7 +108,6 @@ body {
       a {color: #000; text-decoration: none}
       margin: 10px 0;
       font-size: 24px;
-      display: inline-block;
       font-family: 'Toronto Subway';
     }
 
@@ -268,19 +267,27 @@ body {
       }
 
       .toasts-empty {
-        &.active {display: visible;}
+        &.active {display: inherit;}
         display: none;
-        color: #00F;
-        font-size: 20px;
-        text-align: center;
       }
 
-      .toast, .toast-new {
+      .toast {
+        width: 700px;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 15px;
+
+        p, p a {
+         color: #666; 
+        }
+      }
+
+      .toast-new, .note {
         width: 500px;
         border: 1px solid #eaeaea;
         display: flex;
-        background: #fff;
         color: #160b39;
+        background: #fff;
         border-radius: 10px;
         padding: 15px;
         margin: 15px;
