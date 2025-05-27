@@ -1,5 +1,7 @@
 var users = {};
 window.pool = null;
+window.version = 1;
+
 var pubKey;
 
 config = {
@@ -410,11 +412,14 @@ initSqlJs(config).then(function(SQL){
     }
   }
 
+  var dbVersion = window.localStorage.getItem("version");
   var dbstr = window.localStorage.getItem("toastr.sqlite");
 
-  if (dbstr) {
+  if (dbstr && dbVersion !== null && dbVersion == window.version) {
+    console.log("Loading existing database - version numbers match");
     var db = new SQL.Database(toBinArray(dbstr));
   } else {
+    console.log("Database version mismatch or undefined - creating a new DB");
     var db = new SQL.Database();
     db.run("CREATE TABLE IF NOT EXISTS toasts (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, domain TEXT NOT NULL, url TEXT NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
     db.run("CREATE TABLE IF NOT EXISTS notes (id TEXT NOT NULL PRIMARY KEY, created_at INTEGER NOT NULL, pubkey TEXT NOT NULL, kind INTEGER NOT NULL, note TEXT NOT NULL);");
@@ -423,6 +428,7 @@ initSqlJs(config).then(function(SQL){
 
   var dbstr = toBinString(db.export());
   window.localStorage.setItem("toastr.sqlite", dbstr);
+  window.localStorage.setItem("version", window.version);
   window.db = db;
 
   if (typeof browser !== "undefined") {
