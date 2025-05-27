@@ -571,6 +571,11 @@ initSqlJs(config).then(function(SQL){
     } else if (searchValue.startsWith('note') || searchValue.startsWith('nevent')) {
       mode = 'toast-' + searchValue;
     } else {
+      if (searchValue.startsWith('https://')) {
+        searchValue = searchValue.substring(8, searchValue.length);
+      } else if (searchValue.startsWith('http://')) {
+        searchValue = searchValue.substring(7, searchValue.length);
+      }
       mode = 'domain-' + searchValue;
     }
 
