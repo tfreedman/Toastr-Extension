@@ -222,23 +222,11 @@ function newToastSubmit(event) {
 function uploadNote(data, note, parent) {
   console.log("Sending " + JSON.stringify(note));
   Promise.any(window.pool.publish(relays, note)).then(relay => {
-    var avatarURL = null;
-    var username = '';
-    if (window.users[note.pubkey]) {
-      var user = JSON.parse(users[note.pubkey].content);
-      avatarURL = user.picture;
-      username = user.name;
-    }
-    else {
-      username = 'Unknown';
-    }
-
-    displayToast(parent.querySelector('.toasts'), {username: username, pubkey: note.pubkey, message: note.content, avatarURL: avatarURL, created_at: Date.now() / 1000}, note)
-
-    // Hide Message Box
-    parent.querySelector('.toast-new').classList.add('hidden');
-    // Show New Toast
-    parent.querySelector('.toast-new-button').classList.remove('hidden');
+    // When we upload a note, normally we'd have to keep track of state. 
+    // If there are no comments, we'd have to remove the message asking you to be the first.
+    // We'd also have to update the number of comments, etc. Or, we can cheat and just re-render everything.
+    importNote(note);
+    searchResults(document.getElementById('search-bar').value);
     data.reset();
   });
 }
@@ -568,6 +556,8 @@ initSqlJs(config).then(function(SQL){
       mode = 'domain-' + searchValue;
     }
 
+    window.searchResults = searchResults;
+    window.importNote = importNote;
     drawToasts(document.querySelector('.toasts-container'), window.users, mode);
   };
 
@@ -780,7 +770,6 @@ initSqlJs(config).then(function(SQL){
 
     if (pageTitle != '') {
       document.querySelector('h1#title').innerHTML = pageTitle;
-
       document.title = 'Toastr - ' + pageTitle;
     }
 
@@ -861,9 +850,6 @@ initSqlJs(config).then(function(SQL){
         commentsLink.innerHTML = `${commentsCount} ${commentsString}`
         commentsLink.onclick = function(event) {
           event.preventDefault();
-
-//          location.hash = '#' + event.target.dataset.id;
-
           document.getElementById('search-bar').value = event.target.dataset.id;
           searchResults(document.getElementById('search-bar').value);
           history.pushState({hash: event.target.dataset.id, title: document.title}, '', '#' + event.target.dataset.id);
@@ -875,8 +861,6 @@ initSqlJs(config).then(function(SQL){
         domainLink.innerHTML = `${row.domain}`
         domainLink.onclick = function(event) {
           event.preventDefault();
-
-//          location.hash = '#' + event.target.dataset.domain;
           document.getElementById('search-bar').value = event.target.dataset.domain;
           searchResults(document.getElementById('search-bar').value);
           history.pushState({hash: event.target.dataset.domain, title: document.title}, '', '#' + event.target.dataset.domain);
@@ -889,9 +873,6 @@ initSqlJs(config).then(function(SQL){
         submitterLink.innerHTML = `${username}`
         submitterLink.onclick = function(event) {
           event.preventDefault();
-
-//          location.hash = '#' + event.target.dataset.pubkey;
-
           document.getElementById('search-bar').value = event.target.dataset.pubkey;
           searchResults(document.getElementById('search-bar').value);
           history.pushState({hash: event.target.dataset.pubkey, title: document.title}, '', "#" + event.target.dataset.pubkey);
@@ -931,6 +912,13 @@ initSqlJs(config).then(function(SQL){
         eTags.push(['e', event.id, '', marker, event.pubkey])
         newToast(children, {eTags: eTags});
         drawToasts(children, knownUsers, "replies-" + event.id);
+
+        if (children.querySelector('& > .toasts').children.length == 0 && mode.startsWith('toast-')) {
+          // Add text if there are currently no comments.
+          showEmptyMessage = true;
+          emptyMsg = 'no comments (yet) - why not be the first to write one?'
+          window.commentsSection = children;
+        }
       }
     }
     try {
