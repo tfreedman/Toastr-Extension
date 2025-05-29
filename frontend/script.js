@@ -1,7 +1,6 @@
 var users = {};
 window.pool = null;
 window.version = 1;
-
 var pubKey;
 
 config = {
@@ -549,27 +548,11 @@ initSqlJs(config).then(function(SQL){
     }
   )
 
-  // Search Code
-  if (window.location.hash) {
-    document.getElementById('search-bar').value = window.location.hash.substring(1, window.location.hash.length)
-  } else {
-    // Fragment doesn't exist
-  }
-
   const searchBar = document.getElementById('search-bar');
   const searchResults = (searchValue) => {
-    document.querySelectorAll('#toastr nav a').forEach(l => {
-      l.classList.remove("active");
-    });
     var mode = '';
     if (!searchValue || searchValue == "" || searchValue == "https://" || searchValue == "http://") {
       mode = 'recent';
-      document.querySelectorAll('#toastr nav a').forEach(l => {
-        if (l.dataset.mode == "recent") {
-          l.classList.add("active");
-        }
-      });
-
     } else if ((searchValue.startsWith('https://') || searchValue.startsWith('http://')) && (searchValue.split("/").length - 1) > 2) {
       mode = 'url-' + searchValue;
     } else if (searchValue.startsWith('npub')) {
@@ -585,10 +568,25 @@ initSqlJs(config).then(function(SQL){
       mode = 'domain-' + searchValue;
     }
 
-    const searchHeading = document.querySelector('.search-results');
-    searchHeading.classList.add('active');
     drawToasts(document.querySelector('.toasts-container'), window.users, mode);
   };
+
+  var logoLink = document.querySelector('a#logoLink');
+  logoLink.onclick = function(event) {
+    event.preventDefault();
+    history.pushState({hash: ''}, "Home", '#' + '');
+    document.getElementById('search-bar').value = '';
+    searchResults(document.getElementById('search-bar').value);
+  }
+
+  window.addEventListener('popstate', function(event) {
+    if (event.state) { 
+      state = event.state;
+      document.title = state.title;
+      document.getElementById('search-bar').value = state.hash;
+      searchResults(document.getElementById('search-bar').value);
+    }
+  });
 
   const debounce = (fn, delay = 1000) => {
     let timerId = null;
@@ -648,21 +646,16 @@ initSqlJs(config).then(function(SQL){
             var dbstr = toBinString(window.db.export());
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
-          if (window.browserExtension) {
-            document.querySelectorAll('#toastr nav a').forEach(l => {
-              if (l.dataset.mode == "url-#") {
-                l.classList.add("active");
-              }
-            });
-          } else {
+          if (!window.browserExtension) {
             // Ready to draw page contents - has someone attempted a search (via the URL slug) ?
+            if (window.location.hash) {
+              document.getElementById('search-bar').value = window.location.hash.substring(1, window.location.hash.length)
+            } else {
+              // Fragment doesn't exist
+            }
+
             if (document.getElementById('search-bar').value == "") { // If yes
               drawToasts(document.querySelector('.toasts-container'), window.users, "recent");
-              document.querySelectorAll('#toastr nav a').forEach(l => {
-                if (l.dataset.mode == "recent") {
-                  l.classList.add("active");
-                }
-              });
             } else { // If no.
               searchResults(document.getElementById('search-bar').value);
             }
@@ -695,6 +688,8 @@ initSqlJs(config).then(function(SQL){
     }
 
     var emptyMsg = '';
+    var pageTitle = '';
+    var pageSubTitle = '';
     var shouldShowHeadings = false;
     var shouldShowComments = false;
     var showEmptyMessage = true;
@@ -707,12 +702,19 @@ initSqlJs(config).then(function(SQL){
 
       shouldShowHeadings = true;
       shouldShowComments = false;
+
+      pageTitle = 'Search Results'
+      pageSubTitle = 'Domain: ' + mode.substring(7);
+
     } else if (mode == "recent") {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 ORDER BY created_at DESC");
 
       shouldShowHeadings = true;
       shouldShowComments = false;
       emptyMsg = "Sorry, there are no recent toasts";
+
+      pageTitle = 'Recent Toasts'
+      pageSubTitle = '';
     } else if (mode.startsWith("url-")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url ORDER BY created_at ASC");
       console.log("Filtering to URL " + mode.substring(4));
@@ -721,6 +723,9 @@ initSqlJs(config).then(function(SQL){
 
       shouldShowHeadings = true;
       shouldShowComments = false;
+
+      pageTitle = 'Search Results'
+      pageSubTitle = 'URL: ' + mode.substring(4);
     } else if (mode.startsWith("profile")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND pubkey = $pubkey ORDER BY created_at ASC");
       console.log("Filtering to profile " + mode.substring(8));
@@ -730,6 +735,9 @@ initSqlJs(config).then(function(SQL){
 
       shouldShowHeadings = true;
       shouldShowComments = false;
+
+      pageTitle = 'User Profile';
+      pageSubTitle = mode.substring(8);
     } else if (mode.startsWith("toast")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
       var query = mode.split('-')[1];
@@ -747,6 +755,9 @@ initSqlJs(config).then(function(SQL){
 
       shouldShowHeadings = true;
       shouldShowComments = true;
+
+      pageTitle = 'Viewing Thread';
+      pageSubTitle = mode.substring(6);
     } else if (mode.startsWith("replies-")) {
       shouldShowHeadings = false;
       shouldShowComments = true;
@@ -763,6 +774,18 @@ initSqlJs(config).then(function(SQL){
       stmt.bind({$id: mode.substring(8), $noteid: '%' + mode.substring(8) + '%'});
 
       emptyMsg = "";
+
+      // This is called from within a thread - there's no need to set the page title or subtitle
+    }
+
+    if (pageTitle != '') {
+      document.querySelector('h1#title').innerHTML = pageTitle;
+
+      document.title = 'Toastr - ' + pageTitle;
+    }
+
+    if (pageSubTitle != '') {
+      document.querySelector('h2#subtitle').innerHTML = pageSubTitle;
     }
 
     var row;
@@ -839,11 +862,13 @@ initSqlJs(config).then(function(SQL){
         commentsLink.onclick = function(event) {
           event.preventDefault();
 
-          location.hash = '#' + event.target.dataset.id;
+//          location.hash = '#' + event.target.dataset.id;
+
           document.getElementById('search-bar').value = event.target.dataset.id;
           searchResults(document.getElementById('search-bar').value);
+          history.pushState({hash: event.target.dataset.id, title: document.title}, '', '#' + event.target.dataset.id);
         }
-        commentsLink.href = window.NostrTools.nip19.noteEncode(event.id);
+        commentsLink.href = '#' + window.NostrTools.nip19.noteEncode(event.id);
         commentsLink.dataset.id = window.NostrTools.nip19.noteEncode(event.id);
 
         var domainLink = article.querySelector('a.domain');
@@ -851,11 +876,12 @@ initSqlJs(config).then(function(SQL){
         domainLink.onclick = function(event) {
           event.preventDefault();
 
-          location.hash = '#' + event.target.dataset.domain;
+//          location.hash = '#' + event.target.dataset.domain;
           document.getElementById('search-bar').value = event.target.dataset.domain;
           searchResults(document.getElementById('search-bar').value);
+          history.pushState({hash: event.target.dataset.domain, title: document.title}, '', '#' + event.target.dataset.domain);
         }
-        domainLink.href = row.url;
+        domainLink.href = '#' + row.url;
         domainLink.dataset.domain = row.domain;
         domainLink.dataset.url = row.url;
 
@@ -864,12 +890,14 @@ initSqlJs(config).then(function(SQL){
         submitterLink.onclick = function(event) {
           event.preventDefault();
 
-          location.hash = '#' + event.target.dataset.pubkey;
+//          location.hash = '#' + event.target.dataset.pubkey;
+
           document.getElementById('search-bar').value = event.target.dataset.pubkey;
           searchResults(document.getElementById('search-bar').value);
+          history.pushState({hash: event.target.dataset.pubkey, title: document.title}, '', "#" + event.target.dataset.pubkey);
         }
 
-        submitterLink.href = window.NostrTools.nip19.npubEncode(event.pubkey);
+        submitterLink.href = '#' + window.NostrTools.nip19.npubEncode(event.pubkey);
         submitterLink.dataset.pubkey = window.NostrTools.nip19.npubEncode(event.pubkey);
 
       } else {
@@ -1006,21 +1034,6 @@ initSqlJs(config).then(function(SQL){
     node.append(div);
   }
 
-  document.querySelectorAll('#toastr nav a').forEach(link => {
-    link.addEventListener("click", (e) => {
-      if (e.currentTarget.dataset.mode == "search") {
-        return false;
-      }
-      var num = Array.from(document.querySelectorAll("#toastr nav a")).indexOf(e.currentTarget);
-      document.querySelectorAll('#toastr nav a').forEach(l => {
-        l.classList.remove("active");
-      });
-      e.currentTarget.classList.add("active")
-      searchBar.value = '';
-      drawToasts(document.querySelector('.toasts-container'), window.users, e.currentTarget.dataset.mode);
-      return false;
-    });
-  });
 });
 
 
