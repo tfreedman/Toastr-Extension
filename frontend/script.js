@@ -225,7 +225,21 @@ function uploadNote(data, note, parent) {
     // When we upload a note, normally we'd have to keep track of state. 
     // If there are no comments, we'd have to remove the message asking you to be the first.
     // We'd also have to update the number of comments, etc. Or, we can cheat and just re-render everything.
-    importNote(note);
+
+    var isToast = false;
+    note["tags"].forEach((tag) => {
+      if (tag[0] == "t" && tag[1].toLowerCase().startsWith('toastr')) {
+        isToast = true;
+      }
+    });
+
+    if (isToast) {
+      importToast(note);
+      document.getElementById('search-bar').value = window.NostrTools.nip19.noteEncode(note["id"]);
+    } else {
+      importNote(note);
+    }
+
     searchResults(document.getElementById('search-bar').value);
     data.reset();
   });
@@ -558,6 +572,8 @@ initSqlJs(config).then(function(SQL){
 
     window.searchResults = searchResults;
     window.importNote = importNote;
+    window.importToast = importToast;
+
     drawToasts(document.querySelector('.toasts-container'), window.users, mode);
   };
 
