@@ -574,6 +574,16 @@ initSqlJs(config).then(function(SQL){
     window.importNote = importNote;
     window.importToast = importToast;
 
+    document.querySelectorAll('#topbar nav a').forEach(l => {
+      l.classList.remove("active");
+    });
+
+    document.querySelector('#logoLink').classList.add("active")
+    document.querySelectorAll('#container article').forEach(l => {
+      l.style.display = 'none';
+    });
+    document.querySelector('#toastr').style.display = 'block';
+
     drawToasts(document.querySelector('.toasts-container'), window.users, mode);
   };
 
@@ -694,8 +704,8 @@ initSqlJs(config).then(function(SQL){
     }
 
     var emptyMsg = '';
-    var pageTitle = '';
-    var pageSubTitle = '';
+    var pageTitle;
+    var pageSubTitle;
     var shouldShowHeadings = false;
     var shouldShowComments = false;
     var showEmptyMessage = true;
@@ -703,7 +713,7 @@ initSqlJs(config).then(function(SQL){
     if (mode.startsWith("domain-")) {
       console.log("Filtering to domain name " + mode.substring(7));
       emptyMsg = "Sorry, there are no toasts for the domain " + mode.substring(7);
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain ORDER BY created_at ASC");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND domain = $domain ORDER BY created_at DESC");
       stmt.bind({$domain: mode.substring(7)});
 
       shouldShowHeadings = true;
@@ -722,7 +732,7 @@ initSqlJs(config).then(function(SQL){
       pageTitle = 'Recent Toasts'
       pageSubTitle = '';
     } else if (mode.startsWith("url-")) {
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url ORDER BY created_at ASC");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND url = $url ORDER BY created_at DESC");
       console.log("Filtering to URL " + mode.substring(4));
       stmt.bind({$url: mode.substring(4)});
       emptyMsg = "Sorry, there are no toasts for URL " + mode.substring(4) + " - why not be the first to write one?";
@@ -733,7 +743,7 @@ initSqlJs(config).then(function(SQL){
       pageTitle = 'Search Results'
       pageSubTitle = 'URL: ' + mode.substring(4);
     } else if (mode.startsWith("profile")) {
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND pubkey = $pubkey ORDER BY created_at ASC");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND pubkey = $pubkey ORDER BY created_at DESC");
       console.log("Filtering to profile " + mode.substring(8));
       var pubkey = window.NostrTools.nip19.decode(mode.substring(8)).data;
       stmt.bind({$pubkey: pubkey});
@@ -745,7 +755,7 @@ initSqlJs(config).then(function(SQL){
       pageTitle = 'User Profile';
       pageSubTitle = mode.substring(8);
     } else if (mode.startsWith("toast")) {
-      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at ASC");
+      stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at DESC");
       var query = mode.split('-')[1];
 
       console.log("Filtering to toast " + query);
@@ -784,13 +794,13 @@ initSqlJs(config).then(function(SQL){
       // This is called from within a thread - there's no need to set the page title or subtitle
     }
 
-    if (pageTitle != '') {
+    if (pageTitle != undefined) {
       document.querySelector('h1#title').innerHTML = pageTitle;
       document.title = 'Toastr - ' + pageTitle;
     }
 
-    if (pageSubTitle != '') {
-      document.querySelector('h2#subtitle').innerHTML = pageSubTitle;
+    if (pageSubTitle != undefined) {
+      document.querySelector('h2#subtitle').innerHTML = '';
     }
 
     var row;
@@ -933,7 +943,6 @@ initSqlJs(config).then(function(SQL){
           // Add text if there are currently no comments.
           showEmptyMessage = true;
           emptyMsg = 'no comments (yet) - why not be the first to write one?'
-          window.commentsSection = children;
         }
       }
     }
@@ -1030,21 +1039,23 @@ initSqlJs(config).then(function(SQL){
         div.classList.remove('hidden');
 
         this.classList.add('hidden');
+        //document.querySelector('#create').parentElement.click()
       }
 
       node.append(button);
     }
-
     node.append(div);
   }
 
+  //newToast(document.querySelector('#newToastContainer'), {url: ''});
+  //document.querySelector('#newToastContainer .toast-new').classList.remove('hidden');
 });
 
 
-document.querySelectorAll('#sidebar nav a').forEach(link => {
+document.querySelectorAll('#topbar nav a').forEach(link => {
   link.addEventListener("click", (e) => {
-    var num = Array.from(document.querySelectorAll("#sidebar nav a")).indexOf(e.currentTarget);
-    document.querySelectorAll('#sidebar nav a').forEach(l => {
+    var num = Array.from(document.querySelectorAll("#topbar nav a")).indexOf(e.currentTarget);
+    document.querySelectorAll('#topbar nav a').forEach(l => {
       l.classList.remove("active");
     });
     e.currentTarget.classList.add("active")
@@ -1052,6 +1063,7 @@ document.querySelectorAll('#sidebar nav a').forEach(link => {
       l.style.display = 'none';
     });
     document.querySelectorAll('#container article')[num].style.display = 'block';
+    document.getElementById('search-bar').value = '';
     return false;
   });
 });

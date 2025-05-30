@@ -18,6 +18,7 @@ body {
   background-size: cover;
   font-family: 'Inter';
   font-size: 14px;
+  background: #FFF;
   
   #gradient {
     background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -40,82 +41,115 @@ body {
     z-index: -1;
   }
 
-  #topbar {
-    height: 60px;
-    width: 100%;
-    position: absolute;
-    background: rgba(2, 0, 74, 0.5);
-    z-index: -1;
+  p {
+    line-height: 1.5em
   }
 
-  #sidebar {
-    height: 100%;
-    width: 60px;
-    position: fixed;
-    background: rgba(2, 0, 74, 0.5);    
-
-    hr {
-      width: 60%;
-      height: 1px;
-      opacity: 0.25;
-    }
+  #topbar {
+    height: 100px;
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 20px;
 
     nav {
+      display: flex;
       text-align: center;
+      padding-bottom: 30px;
+      font-family: 'Toronto Subway';
+
+      .left {margin-right: auto}
+      .right {
+        margin-left: auto;
+        a {margin: 10px}
+      }
+
       a {
-        width: 60px;
-        height: 60px;
+        text-transform: lowercase;
+        &.search-results {opacity: 0}
+        color: #FFF;
+        font-size: 30px;
+        display: inline-block;
+        text-decoration: none;
+        &.active {opacity: 1; color: #ff1451}
+        &.search-results {cursor: default !important}
 
         #logo {
           width: 55px;
           height: 55px;
-          fill: #FFF;
           margin: 0;
+          opacity: 1;
         }
-  
+
+        #bread, #gear, #info, #logo {
+          fill: #000;
+        }
+
         svg {
           width: 30px;
           height: 30px;
-          margin: 20px 0;
         }
-        &.active {opacity: 0.9}
+
+        &.active {opacity: 1}
         opacity: 0.4;
-        #bread, #gear, #info {
-          fill: #FFF;
+      }
+
+      #search-wrapper {
+        position: relative;
+        display: inline-block;
+        top: -9px;
+        right: 40px;
+
+        &::after {
+          content: '🔍';
+          position: absolute;
+          top: 7px;
+          right: 10px;
+        }
+
+        #search-bar {
+          width: 100%;
+          height: 32px;
+          border-radius: 3px;
+          border: 1px solid #eaeaea;
+          padding: 5px 30px 5px 10px;
+          font-size: 12px;
         }
       }
     }
   }
 
   #container {
-    width: 100%;
-    padding: 10px 0 80px 90px;
+    width: 90%;
+    margin: 0 auto;
+    padding-left: 80px;
     overflow: hidden;
     font-family: 'Inter';
 
 
     #settings, #about {max-width: 700px}
 
-    h1#title {
-      text-transform: lowercase;
+    #new .toast-close-button {display: none}
+
+    article > h1 {
       font-size: 30px;
       display: inline;
+      font-family: 'Toronto Subway';
+      color: #000;
+      margin-top: 0;
       margin: 0;
       padding: 0;
-      font-family: 'Toronto Subway';
-      color: #FFF;
     }
 
     h2 {
       a {color: #000; text-decoration: none}
       margin: 0;
       padding: 0;
-      font-size: 24px;
       font-family: 'Toronto Subway';
     }
 
-    h2#subtitle {
+    article > h2 {
       font-size: 16px;
+      padding-bottom: 30px;
     }
 
     h3 {
@@ -146,8 +180,6 @@ body {
 
     .about {
       width: 500px;
-      border: 1px solid #eaeaea;
-      background: #fff;
       color: #160b39;
       border-radius: 10px;
       padding: 15px;
@@ -161,9 +193,7 @@ body {
       #profile, #relays, #keys {
         width: 300px;
         display: flex;
-        background: #fff;
         color: #160b39;
-        border-radius: 10px;
         padding: 10px;
         margin: 10px;
  
@@ -216,49 +246,7 @@ body {
       }
     }
 
-    #toastr {
-      nav {
-        padding-bottom: 30px;
-        font-family: 'Toronto Subway';
-
-        a {
-          text-transform: lowercase;
-          &.search-results {opacity: 0}
-          color: #FFF;
-          font-size: 30px;
-          display: inline-block;
-          text-decoration: none;
-          margin: 0 50px 0 0;
-          &.active {opacity: 1; color: #ff1451}
-          &.search-results {cursor: default !important}
-        }
-
-        #search-wrapper {
-          top: 3px;
-          right: 10px;
-          position: relative;
-          width: 350px;
-          display: inline-block;
-          float: right;
-
-          &::after {
-            content: '🔍';
-            position: absolute;
-            top: 7px;
-            right: 10px;
-          }
-
-          #search-bar {
-            width: 100%;
-            height: 32px;
-            border-radius: 3px;
-            border: 1px solid #eaeaea;
-            padding: 5px 30px 5px 10px;
-            font-size: 12px;
-          }
-        }
-      }
-
+    #toastr, #new {
       .hidden {display: none !important}
 
       .toast-new button {float: right}
@@ -282,16 +270,19 @@ body {
         width: 700px;
         border-radius: 10px;
         padding: 15px;
-        margin: 15px;
 
         p, p a {
          color: #666; 
+        }
+
+        p {
+          margin: 0;
+          font-size: 12px;
         }
       }
 
       .toast-new, .note {
         width: 500px;
-        border: 1px solid #eaeaea;
         display: flex;
         color: #160b39;
         background: #fff;
@@ -335,10 +326,8 @@ body {
             width: 50px;
             height: 50px;
           }
-
-
         }
-         
+
         .content {
           margin-left: auto;
           width: 100%;
@@ -381,8 +370,9 @@ body {
           border-top: 1px solid #CCC;
           margin-top: 10px;
           text-align: center;
+          justify-content: space-between;
 
-          a {color: #FFF; text-decoration: none}
+          a {color: #FFF; text-decoration: none; flex-basis: 32%}
 
           span {
             margin-top: 3px;
