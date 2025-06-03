@@ -177,15 +177,32 @@ function uploadProfileEvent(note) {
   });
 }
 
-function newToastClose(event) {
-  let button = event.target.parentElement.parentElement.parentElement.previousElementSibling;
+function newNoteClose(event) {
+  let button = event.target.parentElement.parentElement.parentElement.parentElement.previousElementSibling;
   button.classList.remove('hidden');
 
-  let div = event.target.parentElement.parentElement.parentElement;
+  let div = event.target.parentElement.parentElement.parentElement.parentElement;
   div.classList.add('hidden');
 }
 
-function newToastSubmit(event) {
+function validateToast(event) {
+  event.preventDefault();
+
+  var data = event.target.parentElement;
+
+  if (data.checkValidity()) {
+    data.querySelector('.toast-submit-button').disabled = false;
+  } else {
+    var list = data.querySelectorAll(':invalid');
+    for (var item of list) {
+      item.focus();
+    };
+    data.querySelector('.toast-submit-button').disabled = true;
+  }
+}
+
+// This technically handles notes and toasts
+function newNoteSubmit(event) {
   event.preventDefault();
 
   var data = event.target;
@@ -193,7 +210,7 @@ function newToastSubmit(event) {
 
   if (data.url.value != "") {
     // Root Note
-    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr'], ['subject', data.message.value]], content: data.message.value};
+    var e = {created_at: Math.floor(Date.now() / 1000), kind: 1, tags: [['r', data.url.value], ['t', 'toastr'], ['subject', data.title.value]], content: data.title.value};
   } else if (e[0] && (e[0].dataset.marker == "reply" || e[0].dataset.marker == "root")) {
     // Reply
     var tags = [];
@@ -234,10 +251,11 @@ function uploadNote(data, note, parent) {
     });
 
     if (isToast) {
-      importToast(note);
+      window.importToast(note);
       document.getElementById('search-bar').value = window.NostrTools.nip19.noteEncode(note["id"]);
+      history.pushState({hash: note["id"], title: document.title}, '', '#' + note["id"]);
     } else {
-      importNote(note);
+      window.importNote(note);
     }
 
     searchResults(document.getElementById('search-bar').value);
@@ -576,7 +594,7 @@ initSqlJs(config).then(function(SQL){
     window.importNote = importNote;
     window.importToast = importToast;
 
-    document.querySelectorAll('#topbar nav a').forEach(l => {
+    document.querySelectorAll('#topbar nav .right a').forEach(l => {
       l.classList.remove("active");
     });
 
@@ -665,11 +683,10 @@ initSqlJs(config).then(function(SQL){
             window.localStorage.setItem("toastr.sqlite", dbstr);
           }
           if (!window.browserExtension) {
-            // Ready to draw page contents - has someone attempted a search (via the URL slug) ?
-
+            // Draw the new toast UI
             newToast(document.querySelector('#newToastContainer'), {url: ''});
-            document.querySelector('#newToastContainer .toast-new').classList.remove('hidden');
 
+            // Ready to draw page contents - has someone attempted a search (via the URL slug) ?
             if (window.location.hash) {
               document.getElementById('search-bar').value = window.location.hash.substring(1, window.location.hash.length)
             } else {
@@ -942,7 +959,7 @@ initSqlJs(config).then(function(SQL){
 
         // Add the parent post itself as a reference
         eTags.push(['e', event.id, '', marker, event.pubkey])
-        newToast(children, {eTags: eTags});
+        newNote(children, {eTags: eTags});
         drawToasts(children, knownUsers, "replies-" + event.id);
 
         if (children.querySelector('& > .toasts').children.length == 0 && mode.startsWith('toast-')) {
@@ -970,15 +987,23 @@ initSqlJs(config).then(function(SQL){
       container.querySelector('.toasts-loading').classList.remove("active");
       if (showEmptyMessage) {
         container.querySelector('.toasts-empty').innerHTML = emptyMsg;
+
+        // Add a button to the empty message that opens the newToast UI
+        if (mode.startsWith('url-')) {
+          var newButton = '<button onclick=\'document.querySelectorAll("#topbar nav .right a")[0].click()\'>Create</button>'
+
+          document.querySelector('#newToastContainer input[name="url"]').value = mode.substring(4);
+          container.querySelector('.toasts-empty').innerHTML += '<br />' + newButton;
+        }
+
+
         container.querySelector('.toasts-empty').classList.add("active");
       } else {
         container.querySelector('.toasts-empty').innerHTML = '';
         container.querySelector('.toasts-empty').classList.remove("active");
       }
-      if (mode.startsWith('url-')) {
-        newToast(container, {url: mode.substring(4)});
-      } else if (mode.startsWith('toast-')) {
-        newToast(container, {eTags: [['e', event.id, '', 'root', event.pubkey]], showButton: true});
+      if (mode.startsWith('toast-')) {
+        newNote(container, {eTags: [['e', event.id, '', 'root', event.pubkey]], showButton: true});
       }
 
       if (document.getElementById('search-bar').value) {
@@ -988,7 +1013,38 @@ initSqlJs(config).then(function(SQL){
     } catch (e) {}
   }
 
+  // New Root Posts
   function newToast(node, params) {
+    // Grab the profile picture URL from the settings box for the time being
+    var avatarURL;
+    if (document.querySelector('#profile input[name="picture"]').value !== "") {
+      avatarURL = document.querySelector('#profile input[name="picture"]').value
+    } else {
+      avatarURL = 'circle-user.svg'
+    }
+
+    const div = document.createElement('div');
+    div.classList.add('toast-new');
+
+    var innerHTML = `
+      <div>
+        <img class="avatar" src="${avatarURL}" />
+        <div class="content">
+          <form class="toast-new-form" autocomplete="off" onsubmit="newNoteSubmit(event)" action="">
+            <input type="url" name="url" value="" placeholder="URL" required onkeyup="validateToast(event)"></input>
+            <input type="text" name="title" placeholder="Write a title..." required onkeyup="validateToast(event)"></input>
+            <button type="submit" class="toast-submit-button" disabled>Toast</button>
+          </form>
+        </div>
+      </div>
+    `
+
+    div.innerHTML = innerHTML;
+    node.append(div);
+  }
+
+  // New Comments
+  function newNote(node, params) {
     // Grab the profile picture URL from the settings box for the time being
     var avatarURL;
     if (document.querySelector('#profile input[name="picture"]').value !== "") {
@@ -1002,47 +1058,30 @@ initSqlJs(config).then(function(SQL){
     div.classList.add('hidden');
 
     var url = '';
-    var subject = '';
     var eTags = [];
-    var placeholderText;
-    var actionText;
-    var buttonText;
   
-    if (params.url !== undefined) {
-      // This is a root toast
-      subject = '';
-      url = params.url;    
-
-      placeholderText = 'Write a title...';
-      buttonText = 'New Toast';
-      actionText = 'Toast';
-    } else if (params.eTags !== undefined) { 
+    if (params.eTags !== undefined) { 
       // This is a reply
       eTags = params.eTags;
-
-      placeholderText = 'Write a reply...';
-      buttonText = 'New Comment'
-      actionText = 'Reply';
     }
 
     var innerHTML = `
       <div>
         <img class="avatar" src="${avatarURL}" />
         <div class="content">
-          <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
+          <form class="toast-new-form" autocomplete="off" onsubmit="newNoteSubmit(event)" action="">
             <input type="hidden" name="url" value="${url}" placeholder="URL" />
-            <input type="hidden" name="subject" value="${subject}" />
-      `
+          `
             eTags.forEach(function (tag, index) {
               innerHTML += `
             <input type="hidden" name="e" data-event-id="${tag[1]}" data-relay-url="${tag[2]}" data-marker="${tag[3]}" data-pubkey="${tag[4]}" />
-              `
+          `
             })
   
          innerHTML += `
-            <textarea type="text" name="message" placeholder="${placeholderText}"></textarea>
-            <button type="submit" class="toast-submit-button">${actionText}</button>
-            <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
+            <textarea type="text" name="message" placeholder="Write a reply..." required onkeyup="validateToast(event)"></textarea>
+            <button type="submit" class="toast-submit-button" disabled>Reply</button>
+            <button type="button" class="toast-close-button" onclick="newNoteClose(event)">Close</button>
           </form>
         </div>
       </div>
@@ -1052,7 +1091,7 @@ initSqlJs(config).then(function(SQL){
 
     if (url != '' || params.showButton !== undefined) { // Do not add a New Toast button to replies - they have their own button
       const button = document.createElement('button');
-      button.innerHTML = buttonText;
+      button.innerHTML = 'New Comment';
       button.setAttribute('type', 'button');
 
       button.classList.add("toast-new-button");
@@ -1061,29 +1100,25 @@ initSqlJs(config).then(function(SQL){
         div.classList.remove('hidden');
 
         this.classList.add('hidden');
-        //document.querySelector('#create').parentElement.click()
       }
 
       node.append(button);
-    } else {
-      // New Toast
-      div.querySelector('input[name="url"]').type = "url";
     }
     node.append(div);
   }
 });
 
-document.querySelectorAll('#topbar nav a').forEach(link => {
+document.querySelectorAll('#topbar nav .right a').forEach(link => {
   link.addEventListener("click", (e) => {
-    var num = Array.from(document.querySelectorAll("#topbar nav a")).indexOf(e.currentTarget);
-    document.querySelectorAll('#topbar nav a').forEach(l => {
+    var num = Array.from(document.querySelectorAll("#topbar nav .right a")).indexOf(e.currentTarget);
+    document.querySelectorAll('#topbar nav .right a').forEach(l => {
       l.classList.remove("active");
     });
     e.currentTarget.classList.add("active")
     document.querySelectorAll('#container article').forEach(l => {
       l.style.display = 'none';
     });
-    document.querySelectorAll('#container article')[num].style.display = 'block';
+    document.querySelectorAll('#container article')[num + 1].style.display = 'block';
     document.getElementById('search-bar').value = '';
     return false;
   });

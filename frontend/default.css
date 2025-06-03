@@ -53,69 +53,58 @@ body {
 
     nav {
       display: flex;
-      text-align: center;
-      padding-bottom: 30px;
 
-      .left {margin-right: auto}
-      .right {
-        margin-left: auto;
-        a {margin: 10px}
-      }
+      a {display: inline-block}
 
-      a {
-        text-transform: lowercase;
-        &.search-results {opacity: 0}
-        color: #FFF;
-        font-size: 30px;
-        display: inline-block;
-        text-decoration: none;
-        &.active {opacity: 1; color: #ff1451}
-        &.search-results {cursor: default !important}
+      .left {
+        margin-right: auto;
 
         #logo {
           width: 55px;
           height: 55px;
-          margin: 0;
-          opacity: 1;
         }
 
-        #bread, #gear, #info, #logo {fill: #000}
-
-        svg {
-          width: 25px;
-          height: 25px;
-        }
-
-        &.active {opacity: 1}
-        opacity: 0.4;
       }
+      .right {
+        a {
+          margin: 10px;
 
-      #search-wrapper {
-        position: relative;
-        display: inline-block;
-        top: -9px;
-        right: 10px;
+          svg {
+            width: 25px;
+            height: 25px;
+          }
 
-        &::before {
-          background: url('search.svg');
-          position: absolute;
-          content: '';
-          width: 15px;
-          height: 15px;
-          top: 14px;
-          left: 14px;
+          &.active {opacity: 1}
+          opacity: 0.4;
         }
 
-        #search-bar {
-          width: 300px;
-          height: 32px;
-          border-radius: .375rem;
-          border: 1px solid #eaeaea;
-          padding: 20px 20px 20px 40px;
-          font-size: 12px;
-          opacity: 0.5;
+        #search-wrapper {
+          position: relative;
+          display: inline-block;
+          top: -5px;
+          right: 10px;
 
-          &:focus {opacity: 1}
+          &::before {
+            background: url('search.svg');
+            position: absolute;
+            content: '';
+            width: 15px;
+            height: 15px;
+            top: 14px;
+            left: 14px;
+          }
+
+          #search-bar {
+            width: 300px;
+            height: 32px;
+            border-radius: .375rem;
+            border: 1px solid #eaeaea;
+            padding: 20px 20px 20px 40px;
+            font-size: 12px;
+            opacity: 0.5;
+
+            &:focus {opacity: 1}
+          }
         }
       }
     }
@@ -124,13 +113,16 @@ body {
   #container {
     width: 90%;
     margin: 0 auto;
-    overflow: hidden;
     font-family: 'Inter';
     padding-bottom: 50px;
 
     #settings, #about {max-width: 700px}
 
     #new .toast-close-button {display: none}
+
+    & > article:not(:first-child) {
+      display: none;
+    }
 
     article {
       & > h1:first-of-type {
@@ -162,10 +154,19 @@ body {
         padding: 0;
         a {color: #666; text-decoration: none}
       }
-    }
 
-    & > article:not(:first-child) {
-      display: none;
+      #about {
+        .about {
+          width: 500px;
+          color: #160b39;
+          border-radius: 10px;
+          padding: 15px;
+          margin: 15px;
+
+          p:first-child {margin-top: 0}
+          p:last-child {margin-bottom: 0}
+        }
+      }
     }
 
     button {
@@ -178,17 +179,7 @@ body {
       &:hover {
         background: #990024;
       }
-    }
-
-    .about {
-      width: 500px;
-      color: #160b39;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px;
-
-      p:first-child {margin-top: 0}
-      p:last-child {margin-bottom: 0}
+      &:disabled {opacity: 0.5}
     }
 
     #settings {
@@ -209,40 +200,32 @@ body {
             width: fit-content;
             position: static;
             width: 100%;
-          }
 
-          .field label {
-            font-size: 0.75rem;
-            color: #818CF8;
-            font-weight: 700;
-            margin: 10px 0 0 0;
-            padding: 0 3px;
-            width: fit-content;
-          }
-
-          .field input[type=text].input {
-            padding: 11px 10px;
-            font-size: 0.75rem;
-            background-color: #FFF;
-            border: 2px #818CF8 solid;
-            border-radius: 5px;
-          }
+            label {
+              font-size: 0.75rem;
+              color: #818CF8;
+              font-weight: 700;
+              margin: 10px 0 0 0;
+              padding: 0 3px;
+              width: fit-content;
+              width: 100px;
+              text-align: right;
+              padding-right: 5px;
+              padding-bottom: 5px;
+              margin: 3px 0;
+              display: inline-block;
+            }
           
-          .field input[type=text].input:disabled {
-            background-color: #aaa;
-          }
+            input[type=text].input {
+              padding: 11px 10px;
+              font-size: 0.75rem;
+              background-color: #FFF;
+              border: 2px #818CF8 solid;
+              border-radius: 5px;
 
-          .field input[type=text].input:focus {
-            outline: none;
-          }
-
-          label {
-            width: 100px;
-            text-align: right;
-            padding-right: 5px;
-            padding-bottom: 5px;
-            margin: 3px 0;
-            display: inline-block;
+              &:disabled {background-color: #aaa}
+              &:focus {outline: none}
+            }
           }
         }
       }
@@ -250,11 +233,17 @@ body {
 
     #toastr, #new {
       .hidden {display: none !important}
+      & > .toasts-container > .toasts > .toast {max-width: 100% !important}
 
-      .toast-new button {float: right; margin-left: 10px}
+      & > .toasts-container > .toasts > .children {
+        margin-left: 0;
+      }
+      .toasts {margin-top: 10px}
 
-      & > .toasts-container > .toasts > .children {margin-left: 0}
-      .children {margin-left: 15px; border-left: 1px solid rgba(0,0,0,0.5)}
+      .children {
+        margin-left: 20px;
+        border-left: 1px solid rgba(0,0,0,0.5)
+      }
 
       .toasts-loading {
         &.active {display: visible;}
@@ -270,9 +259,8 @@ body {
       }
 
       .toast {
-        width: 700px;
-        border-radius: 10px;
-        padding: 20px 0 20px 0;
+        max-width: 480px;
+        padding: 20px 0;
 
         p, p a {
          color: #666; 
@@ -284,96 +272,108 @@ body {
         }
       }
 
+      .toast-new {margin-bottom: 20px}
+
       .toast-new, .note {
         display: flex;
 
+        .children {margin: 20px !important}
+
+        .toasts > div:last-child {margin-bottom: 0}
+
+        button {
+          float: right;
+          margin-left: 10px;
+        }
+
         &.highlight > div {background: #ffffcc !important}
 
-        footer {
+        & > div {
+          &:hover {background: rgba(255, 255, 255, 0.5)}
+          background: rgba(255, 255, 255, 0.2);
+          margin: 0 0 0 20px;
           display: flex;
-          flex-direction: column;
-          height: 52px;
-          order: 3;
-          margin-left: 15px;
-          justify-content: space-between;
-
-          a {flex-basis: 32%; opacity: 0.2; margin-bottom: 2px}
-          a:hover {opacity: 1}
-
-          img {width: 12px; height: 12px}
-        }
-      }
-
-      .toast-new > div, .note > div {
-        width: 480px;
-        display: flex;
-        color: #160b39;
-        margin: 10px;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 10px;
-        padding: 15px;
+          border-radius: 10px;
+          padding: 15px;
   
-        form {
-          width: 100%;
-          clear: both;
-          margin-bottom: 0;
-  
-          input, textarea {
-            font-size: 14px;
-            resize: vertical;
+          form {
             width: 100%;
-            height: auto;
-            overflow: hidden;
-            font-family: 'Inter';
-            max-width: 100%;
-            border: none;
-            padding: 10px;
-            background: rgba(0,0,0,0);
-            border-radius: 10px;
-            color: #282a51;
-          }
-        }
+            clear: both;
+            margin-bottom: 0;
   
-        .avatar {
-          min-width: 50px;
-          object-fit: cover;
-          border-radius: 50px;
-          overflow: hidden;
-          height: 50px;
-          margin-right: 10px;
-
-          img {
-            &.hashicon {transform: scale(1.25)}
-            width: 50px;
-            height: 50px;
+            input, textarea {
+              font-size: 14px;
+              resize: vertical;
+              width: 100%;
+              height: auto;
+              overflow: hidden;
+              font-family: 'Inter';
+              max-width: 100%;
+              border: none;
+              padding: 10px;
+              background: rgba(0,0,0,0);
+              border-radius: 10px;
+              color: #282a51;
+            }
           }
-        }
-
-        .content {
-          margin-left: auto;
-          width: 100%;
-          order: 2;
-        }
-        
-        header {
-          margin-bottom: 10px;
-
-          .details {
+  
+          .avatar {
+            min-width: 50px;
+            object-fit: cover;
+            border-radius: 50px;
+            overflow: hidden;
+            height: 50px;
+            margin-right: 10px;
+  
+            img {
+              &.hashicon {transform: scale(1.25)}
+              width: 50px;
+              height: 50px;
+            }
+          }
+  
+          footer {
             display: flex;
+            flex-direction: column;
+            height: 52px;
+            order: 3;
+            margin-left: 15px;
+            justify-content: space-between;
 
-            .username {font-weight: bold}
-            .created_at {
-              font-size: 10px;
-              margin-left: auto;
+            a {
+              flex-basis: 32%;
+              opacity: 0.2;
+              margin-bottom: 2px;
+              &:hover {opacity: 1}
+
+              img {width: 12px; height: 12px}
             }
           }
 
-          .pubkey {
-            font-weight: normal;
-            font-style: italic;
-            font-size: 10px;
-            word-wrap: break-word;
-            color: #aaa;
+          .content {
+            order: 2;
+            word-break: break-all;
+          
+            header {
+              margin-bottom: 10px;
+    
+              .details {
+                display: flex;
+  
+                .username {font-weight: bold}
+                .created_at {
+                  font-size: 10px;
+                  margin-left: auto;
+                }
+              }
+  
+              .pubkey {
+                font-style: italic;
+                font-size: 10px;
+                word-wrap: break-word;
+                color: #aaa;
+              }
+            }
           }
         }
       }
