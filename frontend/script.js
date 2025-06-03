@@ -193,10 +193,6 @@ function validateToast(event) {
   if (data.checkValidity()) {
     data.querySelector('.toast-submit-button').disabled = false;
   } else {
-    var list = data.querySelectorAll(':invalid');
-    for (var item of list) {
-      item.focus();
-    };
     data.querySelector('.toast-submit-button').disabled = true;
   }
 }
@@ -891,7 +887,6 @@ initSqlJs(config).then(function(SQL){
         var innerHTML = `<h2><a href="${row.url}">${event.content}</a></h2>
         <p><a class="comments"></a> &middot; ${epochTimestamp.toLocaleString()} &middot; <a class="domain"></a> &middot; submitted by <a class="submitter"></a> </p>
         `
-
         article.innerHTML = innerHTML;
         container.querySelector('.toasts').appendChild(article);
 
