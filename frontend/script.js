@@ -283,31 +283,23 @@ function displayToast(parent, data, note) {
   }
 
   div.innerHTML = `
-    <div class="avatar left"><img src="${data.avatarURL}" class="${imageClass}"/></div>
-    <div class="content">
-      <header>
-        <div class="details">
-          <span class="username left">${data.username}</span>
-          <span class="created_at right"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
-        </div>
-        <div class="pubkey">${data.pubkey}</div>
-      </header>
-      <div class="caption">${data.message.replace(/\n/g, '<br />')}</div>
-      <footer>
-      </footer>
+    <div>
+      <div class="avatar">
+        <img src="${data.avatarURL}" class="${imageClass}"/>
+      </div>
+      <div class="content">
+        <header>
+          <div class="details">
+            <span class="username left">${data.username}</span>
+            <span class="created_at right"><time datetime="${epoch_timestamp}">${epoch_timestamp.toLocaleString()}</time></span>
+          </div>
+          <div class="pubkey">${window.NostrTools.nip19.npubEncode(data.pubkey)}</div>
+        </header>
+        <div class="caption">${data.message.replace(/\n/g, '<br />')}</div>
+      </div>
+      <footer></footer>
     </div>
   `
-  const link = document.createElement('a');
-  link.classList += 'raw';
-  link.onclick = function(event) {
-    event.preventDefault();
-    console.log(note);
-    writeClipboardText(JSON.stringify(note));
-  }
-
-  link.innerHTML = '<img src="code.svg" alt="Copy Raw" />';
-  div.querySelector('.pubkey').prepend(link)
-
   const permalink = document.createElement('a');
   permalink.innerHTML = '<img src="link.svg" alt="Permalink" />';
 
@@ -322,8 +314,8 @@ function displayToast(parent, data, note) {
 
     div.classList.add('highlight');
 
-    document.getElementById('search-bar').value = hash;
-    console.log(hash);
+    //document.getElementById('search-bar').value = hash;
+    //console.log(hash);
   }
 
   const reply = document.createElement('a');
@@ -335,6 +327,16 @@ function displayToast(parent, data, note) {
     form.classList.remove('hidden');
   }
 
+  const link = document.createElement('a');
+  link.classList += 'raw';
+  link.onclick = function(event) {
+    event.preventDefault();
+    console.log(note);
+    writeClipboardText(JSON.stringify(note));
+  }
+
+  link.innerHTML = '<img src="code.svg" alt="Copy Raw" />';
+  div.querySelector('footer').prepend(link)
   div.querySelector('footer').prepend(reply)
   div.querySelector('footer').prepend(permalink)
   parent.appendChild(div)
@@ -664,6 +666,10 @@ initSqlJs(config).then(function(SQL){
           }
           if (!window.browserExtension) {
             // Ready to draw page contents - has someone attempted a search (via the URL slug) ?
+
+            newToast(document.querySelector('#newToastContainer'), {url: ''});
+            document.querySelector('#newToastContainer .toast-new').classList.remove('hidden');
+
             if (window.location.hash) {
               document.getElementById('search-bar').value = window.location.hash.substring(1, window.location.hash.length)
             } else {
@@ -752,7 +758,16 @@ initSqlJs(config).then(function(SQL){
       shouldShowHeadings = true;
       shouldShowComments = false;
 
-      pageTitle = 'User Profile';
+      var username = '';
+      if (window.users[event.pubkey]) {
+        var user = JSON.parse(users[pubkey].content);
+        username = user.name;
+      }
+      else {
+        username = 'Unknown';
+      }
+
+      pageTitle = 'Toasts from ' + username;
       pageSubTitle = mode.substring(8);
     } else if (mode.startsWith("toast")) {
       stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1 AND id = $id ORDER BY created_at DESC");
@@ -792,15 +807,6 @@ initSqlJs(config).then(function(SQL){
       emptyMsg = "";
 
       // This is called from within a thread - there's no need to set the page title or subtitle
-    }
-
-    if (pageTitle != undefined) {
-      document.querySelector('h1#title').innerHTML = pageTitle;
-      document.title = 'Toastr - ' + pageTitle;
-    }
-
-    if (pageSubTitle != undefined) {
-      document.querySelector('h2#subtitle').innerHTML = '';
     }
 
     var row;
@@ -946,6 +952,20 @@ initSqlJs(config).then(function(SQL){
         }
       }
     }
+
+    if (pageTitle !== undefined) {
+      if (pageTitle !== undefined) {
+        document.querySelector('h1#title').innerHTML = pageTitle;
+        document.title = 'Toastr - ' + pageTitle;
+      }
+
+      if (pageSubTitle !== undefined) {
+        document.querySelector('h2#subtitle').innerHTML = pageSubTitle;
+      } else {
+        document.querySelector('h2#subtitle').innerHTML = '';
+      }
+    }
+
     try {
       container.querySelector('.toasts-loading').classList.remove("active");
       if (showEmptyMessage) {
@@ -993,7 +1013,7 @@ initSqlJs(config).then(function(SQL){
       subject = '';
       url = params.url;    
 
-      placeholderText = 'Write a toast...';
+      placeholderText = 'Write a title...';
       buttonText = 'New Toast';
       actionText = 'Toast';
     } else if (params.eTags !== undefined) { 
@@ -1006,23 +1026,25 @@ initSqlJs(config).then(function(SQL){
     }
 
     var innerHTML = `
-      <img class="avatar" src="${avatarURL}" />
-      <div class="content">
-        <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
-          <input type="hidden" name="url" value="${url}" />
-          <input type="hidden" name="subject" value="${subject}" />
-    `
-          eTags.forEach(function (tag, index) {
-            innerHTML += `
-          <input type="hidden" name="e" data-event-id="${tag[1]}" data-relay-url="${tag[2]}" data-marker="${tag[3]}" data-pubkey="${tag[4]}" />
-            `
-          })
-
-       innerHTML += `
-          <textarea type="text" name="message" placeholder="${placeholderText}"></textarea>
-          <button type="submit" class="toast-submit-button">${actionText}</button>
-          <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
-        </form>
+      <div>
+        <img class="avatar" src="${avatarURL}" />
+        <div class="content">
+          <form class="toast-new-form" autocomplete="off" onsubmit="newToastSubmit(event)" action="">
+            <input type="hidden" name="url" value="${url}" placeholder="URL" />
+            <input type="hidden" name="subject" value="${subject}" />
+      `
+            eTags.forEach(function (tag, index) {
+              innerHTML += `
+            <input type="hidden" name="e" data-event-id="${tag[1]}" data-relay-url="${tag[2]}" data-marker="${tag[3]}" data-pubkey="${tag[4]}" />
+              `
+            })
+  
+         innerHTML += `
+            <textarea type="text" name="message" placeholder="${placeholderText}"></textarea>
+            <button type="submit" class="toast-submit-button">${actionText}</button>
+            <button type="button" class="toast-close-button" onclick="newToastClose(event)">Close</button>
+          </form>
+        </div>
       </div>
     `
 
@@ -1043,14 +1065,13 @@ initSqlJs(config).then(function(SQL){
       }
 
       node.append(button);
+    } else {
+      // New Toast
+      div.querySelector('input[name="url"]').type = "url";
     }
     node.append(div);
   }
-
-  //newToast(document.querySelector('#newToastContainer'), {url: ''});
-  //document.querySelector('#newToastContainer .toast-new').classList.remove('hidden');
 });
-
 
 document.querySelectorAll('#topbar nav a').forEach(link => {
   link.addEventListener("click", (e) => {

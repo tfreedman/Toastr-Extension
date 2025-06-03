@@ -11,6 +11,8 @@ html {
   }
 }
 
+h1, h2, h3, h4, h5, h6, p, .username, time {font-family: 'Toronto Subway'}
+
 body {
   margin: 0;
   min-width: 100%;
@@ -41,9 +43,7 @@ body {
     z-index: -1;
   }
 
-  p {
-    line-height: 1.5em
-  }
+  p {line-height: 1.5em}
 
   #topbar {
     height: 100px;
@@ -55,7 +55,6 @@ body {
       display: flex;
       text-align: center;
       padding-bottom: 30px;
-      font-family: 'Toronto Subway';
 
       .left {margin-right: auto}
       .right {
@@ -80,13 +79,11 @@ body {
           opacity: 1;
         }
 
-        #bread, #gear, #info, #logo {
-          fill: #000;
-        }
+        #bread, #gear, #info, #logo {fill: #000}
 
         svg {
-          width: 30px;
-          height: 30px;
+          width: 25px;
+          height: 25px;
         }
 
         &.active {opacity: 1}
@@ -97,22 +94,28 @@ body {
         position: relative;
         display: inline-block;
         top: -9px;
-        right: 40px;
+        right: 10px;
 
-        &::after {
-          content: '🔍';
+        &::before {
+          background: url('search.svg');
           position: absolute;
-          top: 7px;
-          right: 10px;
+          content: '';
+          width: 15px;
+          height: 15px;
+          top: 14px;
+          left: 14px;
         }
 
         #search-bar {
-          width: 100%;
+          width: 300px;
           height: 32px;
-          border-radius: 3px;
+          border-radius: .375rem;
           border: 1px solid #eaeaea;
-          padding: 5px 30px 5px 10px;
+          padding: 20px 20px 20px 40px;
           font-size: 12px;
+          opacity: 0.5;
+
+          &:focus {opacity: 1}
         }
       }
     }
@@ -121,44 +124,44 @@ body {
   #container {
     width: 90%;
     margin: 0 auto;
-    padding-left: 80px;
     overflow: hidden;
     font-family: 'Inter';
-
+    padding-bottom: 50px;
 
     #settings, #about {max-width: 700px}
 
     #new .toast-close-button {display: none}
 
-    article > h1 {
-      font-size: 30px;
-      display: inline;
-      font-family: 'Toronto Subway';
-      color: #000;
-      margin-top: 0;
-      margin: 0;
-      padding: 0;
-    }
+    article {
+      & > h1:first-of-type {
+        font-size: 30px;
+        display: inline;
+        color: #000;
+        margin-top: 0;
+        margin: 0;
+        padding: 0;
+      }
 
-    h2 {
-      a {color: #000; text-decoration: none}
-      margin: 0;
-      padding: 0;
-      font-family: 'Toronto Subway';
-    }
+      h2 {
+        a {color: #000; text-decoration: none}
+        margin: 0;
+        padding: 0;
+      }
 
-    article > h2 {
-      font-size: 16px;
-      padding-bottom: 30px;
-    }
+      & > h2:first-of-type {
+        font-size: 16px;
+        padding-bottom: 30px;
+        font-weight: normal;
+        text-transform: lowercase;
+      }
 
-    h3 {
-      font-family: 'Toronto Subway';
-      display: inline-block;
-      font-size: 16px;
-      margin: 10px 0;
-      padding: 0;
-      a {color: #666; text-decoration: none}
+      h3 {
+        display: inline-block;
+        font-size: 16px;
+        margin: 10px 0;
+        padding: 0;
+        a {color: #666; text-decoration: none}
+      }
     }
 
     & > article:not(:first-child) {
@@ -170,7 +173,6 @@ body {
       border: none;
       color: #fff;
       padding: 10px;
-      margin-left: 10px;
       background: #cb0031;
       border-radius: 5px;
       &:hover {
@@ -199,7 +201,6 @@ body {
  
         form {
           width: 100%;
-
           button {float: right}
 
           .field {
@@ -214,20 +215,21 @@ body {
             font-size: 0.75rem;
             color: #818CF8;
             font-weight: 700;
-            position: relative;
-            top: 0.5rem;
-            margin: 0 0 0 7px;
+            margin: 10px 0 0 0;
             padding: 0 3px;
-            background: #fff;
             width: fit-content;
           }
 
           .field input[type=text].input {
             padding: 11px 10px;
             font-size: 0.75rem;
+            background-color: #FFF;
             border: 2px #818CF8 solid;
             border-radius: 5px;
-            background: #fff;
+          }
+          
+          .field input[type=text].input:disabled {
+            background-color: #aaa;
           }
 
           .field input[type=text].input:focus {
@@ -249,9 +251,10 @@ body {
     #toastr, #new {
       .hidden {display: none !important}
 
-      .toast-new button {float: right}
+      .toast-new button {float: right; margin-left: 10px}
 
-      .children {margin-left: 20px; border-left: 5px solid #FFF}
+      & > .toasts-container > .toasts > .children {margin-left: 0}
+      .children {margin-left: 15px; border-left: 1px solid rgba(0,0,0,0.5)}
 
       .toasts-loading {
         &.active {display: visible;}
@@ -269,7 +272,7 @@ body {
       .toast {
         width: 700px;
         border-radius: 10px;
-        padding: 15px;
+        padding: 20px 0 20px 0;
 
         p, p a {
          color: #666; 
@@ -282,22 +285,40 @@ body {
       }
 
       .toast-new, .note {
-        width: 500px;
+        display: flex;
+
+        &.highlight > div {background: #ffffcc !important}
+
+        footer {
+          display: flex;
+          flex-direction: column;
+          height: 52px;
+          order: 3;
+          margin-left: 15px;
+          justify-content: space-between;
+
+          a {flex-basis: 32%; opacity: 0.2; margin-bottom: 2px}
+          a:hover {opacity: 1}
+
+          img {width: 12px; height: 12px}
+        }
+      }
+
+      .toast-new > div, .note > div {
+        width: 480px;
         display: flex;
         color: #160b39;
-        background: #fff;
+        margin: 10px;
+        background: rgba(255, 255, 255, 0.5);
         border-radius: 10px;
         padding: 15px;
-        margin: 15px;
-
-        &.highlight {background: #ffffcc}
   
         form {
           width: 100%;
           clear: both;
           margin-bottom: 0;
   
-          textarea {
+          input, textarea {
             font-size: 14px;
             resize: vertical;
             width: 100%;
@@ -346,57 +367,13 @@ body {
               margin-left: auto;
             }
           }
+
           .pubkey {
             font-weight: normal;
             font-style: italic;
             font-size: 10px;
             word-wrap: break-word;
             color: #aaa;
-
-            .raw img {
-              width: 10px;
-              height: 10px;
-              position: relative;
-              top: 2px;
-              margin-right: 5px;
-              opacity: 0.5;
-            }
-          }
-        }
-
-        footer {
-          display: flex;
-          flex-direction: row;
-          border-top: 1px solid #CCC;
-          margin-top: 10px;
-          text-align: center;
-          justify-content: space-between;
-
-          a {color: #FFF; text-decoration: none; flex-basis: 32%}
-
-          span {
-            margin-top: 3px;
-            flex: 1;
-            width: 0;
-          }
-  
-          img {width: 15px; height: 15px; margin-top: 7px}
-          img:hover {text-decoration: underline}
-
-          span.likes {
-            img.like {content: url('like.svg')}
-          }
-
-          span.zaps {
-            img.zap {content: url('zap.svg')}
-          }
-  
-          span.replies {
-            img.reply {content: url('reply.svg')}
-          }
-  
-          span.reposts {
-            img.repost {content: url('repost.svg')}
           }
         }
       }
