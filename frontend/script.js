@@ -26,17 +26,17 @@ function setExtensionIcon(tab, currentURL) {
     console.log("Toasting Icon");
     browser.browserAction.setIcon({
       path: {
-        '16': "icons/toast_16.png",
-        '32': "icons/toast_32.png",
-        '64': "icons/toast_64.png",
+        '16': "icons/red-16.png",
+        '32': "icons/red-32.png",
+        '64': "icons/red-64.png",
     }, tabId: tab.id});
   } else {
     console.log("Untoasting Icon");
     browser.browserAction.setIcon({
       path: {
-        '16': "icons/bread_16.png",
-        '32': "icons/bread_32.png",
-        '64': "icons/bread_64.png",
+        '16': "icons/logo-16.png",
+        '32': "icons/logo-32.png",
+        '64': "icons/logo-64.png",
     }, tabId: tab.id});
   }
 }
