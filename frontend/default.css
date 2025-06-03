@@ -15,8 +15,8 @@ h1, h2, h3, h4, h5, h6, p, .username, time {font-family: 'Toronto Subway'}
 
 body {
   margin: 0;
-  min-width: 100%;
-  min-height: 100%;
+  min-width: 600px;
+  min-height: 700px;
   background-size: cover;
   font-family: 'Inter';
   font-size: 14px;
