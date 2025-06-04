@@ -117,32 +117,45 @@ body {
           opacity: 0.4;
         }
 
-        #search-wrapper {
-          position: relative;
-          display: inline-block;
-          top: -5px;
-          right: 10px;
-
-          &::before {
-            background: url('search.svg');
-            position: absolute;
-            content: '';
-            width: 15px;
-            height: 15px;
-            top: 14px;
-            left: 14px;
+        #search-container {
+          display: inline;
+          & > svg {
+            &.active {opacity: 1}
+            opacity: 0.4;
+            display: none;
+            width: 25px;
+            height: 25px;
           }
 
-          #search-bar {
-            width: 300px;
-            height: 32px;
-            border-radius: .375rem;
-            border: 1px solid #eaeaea;
-            padding: 20px 20px 20px 40px;
-            font-size: 12px;
-            opacity: 0.5;
+          #xmark {display: none}
 
-            &:focus {opacity: 1}
+          #search-wrapper {
+            position: relative;
+            display: inline-block;
+            top: -5px;
+            right: 10px;
+
+            &::before {
+              background: url('search.svg');
+              position: absolute;
+              content: '';
+              width: 15px;
+              height: 15px;
+              top: 14px;
+              left: 14px;
+            }
+
+            #search-bar {
+              width: 300px;
+              height: 32px;
+              border-radius: .375rem;
+              border: 1px solid #eaeaea;
+              padding: 20px 20px 20px 40px;
+              font-size: 12px;
+              opacity: 0.5;
+  
+              &:focus {opacity: 1}
+            }
           }
         }
       }
@@ -170,12 +183,16 @@ body {
         margin-top: 0;
         margin: 0;
         padding: 0;
+       
+        &:hover {text-decoration: underline}
       }
 
       h2 {
         a {color: #000; text-decoration: none}
         margin: 0;
         padding: 0;
+
+        &:hover {text-decoration: underline}
       }
 
       & > h2:first-of-type {
@@ -426,5 +443,15 @@ body {
     #topbar {padding: 20px 10px 0 10px; width: 100%}
     .toast {br {display: block !important}}
     .middot {opacity: 0}
+
+    #search-container {
+      #search-bar {
+        width: 250px !important;
+      }      
+
+      & > svg {
+        display: inline-block !important;
+      }
+    }
   }
 }

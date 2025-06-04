@@ -3,6 +3,25 @@ window.pool = null;
 window.version = 1;
 var pubKey;
 
+var showSearchIcon = true;
+function toggleSearchBox() {
+  if (showSearchIcon) {
+    document.querySelector('#search-container #xmark').style.display = 'none';
+    document.querySelector('#search-container #search-wrapper').style.display = 'none';
+    document.querySelector('#search-container #search').style.display = 'inline-block';
+    document.querySelectorAll('#topbar nav .right > a').forEach(i => i.style.display = 'inline-block');
+    showSearchIcon = false;
+  } else {
+    document.querySelector('#search-container #xmark').style.display = 'inline-block';
+    document.querySelector('#search-container #search-wrapper').style.display = 'inline-block';
+    document.querySelector('#search-container #search').style.display = 'none';
+    document.querySelectorAll('#topbar nav .right > a').forEach(i => i.style.display = 'none');
+    showSearchIcon = true;
+  }
+}
+
+toggleSearchBox();
+
 config = {
   locateFile: filename => `${filename}`
 }
@@ -491,6 +510,7 @@ initSqlJs(config).then(function(SQL){
       displayProfile(pubKey);
       return pubKey;
     })
+    document.querySelector('#keys button').disabled = true;
   } else if (sk === null) {
     document.querySelector('#keys input[name="privkey"]').value = window.NostrTools.nip19.nsecEncode(window.NostrTools.generateSecretKey());
     localStorage.setItem("privkey", document.querySelector('#keys input[name="privkey"]').value);
@@ -590,7 +610,7 @@ initSqlJs(config).then(function(SQL){
     window.importNote = importNote;
     window.importToast = importToast;
 
-    document.querySelectorAll('#topbar nav .right a').forEach(l => {
+    document.querySelectorAll('#topbar nav .right > a').forEach(l => {
       l.classList.remove("active");
     });
 
@@ -985,7 +1005,7 @@ initSqlJs(config).then(function(SQL){
 
         // Add a button to the empty message that opens the newToast UI
         if (mode.startsWith('url-')) {
-          var newButton = '<button onclick=\'document.querySelectorAll("#topbar nav .right a")[0].click()\'>Create</button>'
+          var newButton = '<button onclick=\'document.querySelectorAll("#topbar nav .right > a")[0].click()\'>Create</button>'
 
           document.querySelector('#newToastContainer input[name="url"]').value = mode.substring(4);
           container.querySelector('.toasts-empty').innerHTML += '<br />' + newButton;
@@ -1103,10 +1123,10 @@ initSqlJs(config).then(function(SQL){
   }
 });
 
-document.querySelectorAll('#topbar nav .right a').forEach(link => {
+document.querySelectorAll('#topbar nav .right > a').forEach(link => {
   link.addEventListener("click", (e) => {
-    var num = Array.from(document.querySelectorAll("#topbar nav .right a")).indexOf(e.currentTarget);
-    document.querySelectorAll('#topbar nav .right a').forEach(l => {
+    var num = Array.from(document.querySelectorAll("#topbar nav .right > a")).indexOf(e.currentTarget);
+    document.querySelectorAll('#topbar nav .right > a').forEach(l => {
       l.classList.remove("active");
     });
     e.currentTarget.classList.add("active")
