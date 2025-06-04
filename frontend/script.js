@@ -885,7 +885,7 @@ initSqlJs(config).then(function(SQL){
         epochTimestamp.setUTCSeconds(event.created_at);
 
         var innerHTML = `<h2><a href="${row.url}">${event.content}</a></h2>
-        <p><a class="comments"></a> &middot; ${epochTimestamp.toLocaleString()} &middot; <a class="domain"></a> &middot; submitted by <a class="submitter"></a> </p>
+        <p><a class="comments"></a> &middot; ${epochTimestamp.toLocaleString()} <span class="middot">&middot;</span><br /> <a class="domain"></a> &middot; submitted by <a class="submitter"></a> </p>
         `
         article.innerHTML = innerHTML;
         container.querySelector('.toasts').appendChild(article);

@@ -306,6 +306,8 @@ body {
 
         p {
           margin: 0;
+
+          br {display: none}
         }
       }
 
@@ -422,5 +424,7 @@ body {
   body {
     #container {padding: 0 10px 50px 10px; width: 100%}
     #topbar {padding: 20px 10px 0 10px; width: 100%}
+    .toast {br {display: block !important}}
+    .middot {opacity: 0}
   }
 }
