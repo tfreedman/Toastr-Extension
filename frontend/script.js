@@ -792,7 +792,7 @@ initSqlJs(config).then(function(SQL){
       shouldShowComments = false;
 
       var username = '';
-      if (window.users[event.pubkey]) {
+      if (users[pubkey]) {
         var user = JSON.parse(users[pubkey].content);
         username = user.name;
       }
