@@ -90,23 +90,23 @@
           <form>
             <div class="field">
               <label for="name">Name:</label>
-              <input name="name" value="" type="text" class="input" />
+              <input name="name" value="" type="text" class="input" onkeyup="validateProfile(event)" />
             </div>
             <div class="field">
               <label for="display_name">Display Name:</label>
-              <input name="display_name" value="" type="text" class="input" />
+              <input name="display_name" value="" type="text" class="input" onkeyup="validateProfile(event)" />
             </div>
             <div class="field">
               <label for="website">Website:</label>
-              <input name="website" value="" type="text" class="input" />
+              <input name="website" value="" type="url" class="input" onkeyup="validateProfile(event)" />
             </div>
             <div class="field">
               <label for="banner">Banner (URL):</label>
-              <input name="banner" value="" type="text" class="input" />
+              <input name="banner" value="" type="url" class="input" onkeyup="validateProfile(event)" />
             </div>
             <div class="field">
               <label for="picture">Picture (URL):</label>
-              <input name="picture" value="" type="text" class="input" />
+              <input name="picture" value="" type="url" class="input" onkeyup="validateProfile(event)" />
             </div>
             <button type="button">Update</button>
           </form>

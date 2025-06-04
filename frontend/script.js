@@ -216,6 +216,18 @@ function validateToast(event) {
   }
 }
 
+function validateProfile(event) {
+  event.preventDefault();
+
+  var data = event.target.parentElement.parentElement;
+
+  if (data.checkValidity()) {
+    data.querySelector('#profile button').disabled = false;
+  } else {
+    data.querySelector('#profile button').disabled = true;
+  }
+}
+
 // This technically handles notes and toasts
 function newNoteSubmit(event) {
   event.preventDefault();
