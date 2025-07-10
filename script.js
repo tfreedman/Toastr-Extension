@@ -114,7 +114,7 @@ function displayRelays(relays) {
     `
   });
 
-  document.querySelector('#settings .relays').innerHTML = div.innerHTML;  
+  document.querySelector('#settings .relays').innerHTML = div.innerHTML;
 }
 
 function displayProfile(pubKey) {
@@ -124,7 +124,7 @@ function displayProfile(pubKey) {
     document.querySelector('#keys input[name="pubkey"]').disabled = true;
     document.querySelector('#keys input[name="npub"]').value = window.NostrTools.nip19.npubEncode(pubKey);
     document.querySelector('#keys input[name="npub"]').disabled = true;
-  
+
     document.querySelector('#keys button').addEventListener('click', updateProfile);
     document.querySelector('#profile button').addEventListener('click', updateProfile);
 
@@ -412,7 +412,7 @@ initSqlJs(config).then(function(SQL){
 
     const url = new URL(taggedUrl);
     var domain = url.hostname.toLowerCase();
-        
+
     console.log('Inserting ' + value['id'] + ' into Toasts DB...');
     db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
   }
@@ -883,15 +883,16 @@ initSqlJs(config).then(function(SQL){
         }
       }
 
-      var username = '';
+      var username = 'Unknown';
       var avatarURL = null;
       if (users[event.pubkey]) {
         var user = JSON.parse(users[event.pubkey].content);
-        avatarURL = user.picture;
-        username = user.name;
-      }
-      else {
-        username = 'Unknown';
+        if (typeof user.picture !== 'undefined') {
+          avatarURL = user.picture;
+        }
+        if (typeof user.name !== 'undefined') {
+          username = user.name;
+        }
       }
       if (shouldShowHeadings) {
         var article = document.createElement('div');
@@ -1075,15 +1076,15 @@ initSqlJs(config).then(function(SQL){
     } else {
       avatarURL = 'circle-user.svg'
     }
-    
+
     const div = document.createElement('div');
     div.classList.add('toast-new');
     div.classList.add('hidden');
 
     var url = '';
     var eTags = [];
-  
-    if (params.eTags !== undefined) { 
+
+    if (params.eTags !== undefined) {
       // This is a reply
       eTags = params.eTags;
     }
@@ -1100,7 +1101,7 @@ initSqlJs(config).then(function(SQL){
             <input type="hidden" name="e" data-event-id="${tag[1]}" data-relay-url="${tag[2]}" data-marker="${tag[3]}" data-pubkey="${tag[4]}" />
           `
             })
-  
+
          innerHTML += `
             <textarea type="text" name="message" placeholder="Write a reply..." required onkeyup="validateToast(event)"></textarea>
             <button type="submit" class="toast-submit-button" disabled>Reply</button>
