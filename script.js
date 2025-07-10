@@ -479,7 +479,7 @@ initSqlJs(config).then(function(SQL){
   window.localStorage.setItem("version", window.version);
   window.db = db;
 
-  if (typeof browser !== "undefined") {
+  if (typeof browser !== "undefined" && typeof browser.tabs !== "undefined") {
     // Firefox Extension
     window.browserExtension = true;
 
@@ -507,7 +507,7 @@ initSqlJs(config).then(function(SQL){
     window.browserExtension = false;
   }
 
-	console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
+  console.log("Cached Notes: " + db.exec("SELECT COUNT(*) FROM notes")[0].values[0][0]);
   console.log("Cached Toasts: " + db.exec("SELECT COUNT(*) FROM toasts WHERE kind = 1")[0].values[0][0]);
 
   // Start Nostr connections
