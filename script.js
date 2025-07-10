@@ -83,7 +83,7 @@ function getRelays() {
   var override_relays = true;
 
   if (override_relays) {
-    var relays = ["wss://toastr.tylerfreedman.com"];
+    var relays = ["wss://relay.toastr.net"];
     document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
   } else {
     if (typeof window.nostr !== 'undefined') {
@@ -400,7 +400,7 @@ async function writeClipboardText(text) {
 }
 
 initSqlJs(config).then(function(SQL){
-  function importToast(value, index, array) {
+  window.importToast = function(value, index, array) {
     var note = JSON.stringify(value);
 
     var taggedUrl = '';
@@ -417,7 +417,7 @@ initSqlJs(config).then(function(SQL){
     db.run("INSERT OR IGNORE INTO toasts (id, created_at, domain, url, pubkey, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)", [value['id'], value['created_at'], domain, taggedUrl, value['pubkey'], value['kind'], note]);
   }
 
-  function importNote(value, index, array) {
+  window.importNote = function(value, index, array) {
     var note = JSON.stringify(value);
     if (value['kind'] == 0) {
       var existing_note_length = db.exec("SELECT * FROM notes WHERE pubkey = ? AND kind = 0", [value['pubkey']]).length
@@ -599,7 +599,7 @@ initSqlJs(config).then(function(SQL){
   )
 
   const searchBar = document.getElementById('search-bar');
-  const searchResults = (searchValue) => {
+  window.searchResults = (searchValue) => {
     var mode = '';
     if (!searchValue || searchValue == "" || searchValue == "https://" || searchValue == "http://") {
       mode = 'recent';
@@ -617,10 +617,6 @@ initSqlJs(config).then(function(SQL){
       }
       mode = 'domain-' + searchValue;
     }
-
-    window.searchResults = searchResults;
-    window.importNote = importNote;
-    window.importToast = importToast;
 
     document.querySelectorAll('#topbar nav .right > a').forEach(l => {
       l.classList.remove("active");
