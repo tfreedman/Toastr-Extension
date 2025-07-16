@@ -1,6 +1,6 @@
 var users = {};
 window.pool = null;
-window.version = 1;
+window.version = 2;
 var pubKey;
 
 var showSearchIcon = true;
@@ -565,38 +565,41 @@ initSqlJs(config).then(function(SQL){
           var dbstr = toBinString(window.db.export());
           window.localStorage.setItem("toastr.sqlite", dbstr);
         }
+	fetchNotes();
         //h.close();
       }
     }
   )
 
-  var filters = [];
-  var stmt = db.prepare("SELECT * FROM toasts WHERE kind = 1");
-  while(stmt.step()) {
-    const row = stmt.getAsObject();
-    var event = JSON.parse(row.note);
-    filters.push({kinds: [1], '#e': [event.id]});
-  }
-
-  window.filters = filters;
-  console.log('filters: '+ filters.toString());
-
-  var h = window.pool.subscribeMany(
-    relays, filters,
-    {
-      onevent(event) {
-        if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
-          importNote(event);
-        }
-      },
-      oneose() {
-        console.log('EOSE on notes/comments - Calling fetchAuthorInfo...');
-        fetchAuthorInfo();
-
-        h.close();
-      }
+  function fetchNotes() {
+    var filters = [];
+    var stmt = window.db.prepare("SELECT * FROM toasts WHERE kind = 1");
+    while(stmt.step()) {
+      const row = stmt.getAsObject();
+      var event = JSON.parse(row.note);
+      filters.push({kinds: [1], '#e': [event.id]});
     }
-  )
+
+    window.filters = filters;
+    console.log('filters: '+ filters.toString());
+
+    var h = window.pool.subscribeMany(
+      relays, filters,
+      {
+        onevent(event) {
+          if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
+            importNote(event);
+          }
+        },
+        oneose() {
+          console.log('EOSE on notes/comments - Calling fetchAuthorInfo...');
+          fetchAuthorInfo();
+
+          h.close();
+        }
+      }
+    )
+  }
 
   const searchBar = document.getElementById('search-bar');
   window.searchResults = (searchValue) => {
