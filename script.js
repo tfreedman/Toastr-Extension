@@ -78,12 +78,12 @@ function toBinString(arr) {
 }
 
 function getRelays() {
-  var default_relays = ["wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://relay.snort.social"];
+  var default_relays = ["wss://relay.toastr.net", "wss://purplepag.es", "wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
   var relays = [];
-  var override_relays = true;
+  var override_relays = false;
 
   if (override_relays) {
-    var relays = ["wss://relay.toastr.net"];
+    var relays = ["wss://relay.toastr.net", "wss://purplepag.es"];
     document.querySelector('#settings #relays .message').innerHTML = 'Overriding NIP-07 Relays for debugging purposes';
   } else {
     if (typeof window.nostr !== 'undefined') {
@@ -96,7 +96,7 @@ function getRelays() {
         displayRelays(relays);
       })
     } else {
-      relays.concat(default_relays);
+      relays = relays.concat(default_relays);
     }
   }
   displayRelays(relays);
@@ -551,11 +551,11 @@ initSqlJs(config).then(function(SQL){
 
   var h = window.pool.subscribeMany(
     relays,[
-      {kinds: [1], '#t': ["toastr"]}
+      {kinds: [1], '#t': ["toastr"], since: 1750046400}
     ],
     {
       onevent(event) {
-        if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey)) {
+        if (event && event.pubkey && event.content && event.kind == 1 && window.NostrTools.verifyEvent(event, event.pubkey) && event.created_at > 1750046400) {
           importToast(event);
           dirty = true;
         }
@@ -845,7 +845,7 @@ initSqlJs(config).then(function(SQL){
       // This is only doable with an index of tags though.
       // {kinds: [1], '#e': [mode.substring(8), "", "root/reply"]}
 
-      stmt = db.prepare("SELECT * FROM notes WHERE kind = 1 AND id <> $id AND note LIKE $noteid");
+      stmt = db.prepare("SELECT * FROM notes WHERE kind = 1 AND id <> $id AND note LIKE $noteid ORDER BY created_at ASC");
       stmt.bind({$id: mode.substring(8), $noteid: '%' + mode.substring(8) + '%'});
 
       emptyMsg = "";
